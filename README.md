@@ -16,4 +16,4 @@ Scripts for training a Kaldi speech recognition engine for Catalan
 - [ ] Combined test corpus
 - [ ] Combined train/dev/test1/test2
 - [ ] Test training/evaluation
-- [ ] Documentation
+- [ ] Documentation 
