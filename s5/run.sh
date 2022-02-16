@@ -7,8 +7,8 @@
 
 #data=$HOME/cv_corpus_v1
 #data_url=https://common-voice-data-download.s3.amazonaws.com/cv_corpus_v1.tar.gz
-data=$HOME/LargeDrive/corpora/commonvoice
-lang=ca
+data=$1
+lang=$2
 
 data_url=https://mozilla-common-voice-datasets.s3.dualstack.us-west-2.amazonaws.com/cv-corpus-8.0-2022-01-19/cv-corpus-8.0-2022-01-19-$lang.tar.gz
 
