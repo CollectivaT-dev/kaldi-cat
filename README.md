@@ -1,6 +1,6 @@
 # kaldi-cat
 Scripts for training a Kaldi speech recognition engine for Catalan
-
+ 
 ### Tasks
 
 - [x] Kaldi installation and mini-librispeech test run
