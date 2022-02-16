@@ -3,10 +3,9 @@
 # Recipe for Mozilla Common Voice corpus v1
 #
 # Copyright 2017   Ewald Enzinger
+# Copyright 2021   Col·lectivaT, SCCL
 # Apache 2.0
 
-#data=$HOME/cv_corpus_v1
-#data_url=https://common-voice-data-download.s3.amazonaws.com/cv_corpus_v1.tar.gz
 data=$1
 lang=$2
 
@@ -27,25 +26,25 @@ if [ $stage -le 0 ]; then
   local/download_and_untar.sh $data $data_url $lang
 fi
 
-#if [ $stage -le 1 ]; then
-#  for part in valid-train valid-dev valid-test; do
-#    # use underscore-separated names in data directories.
-#    local/data_prep.pl $data cv-$part data/$(echo $part | tr - _)
-#  done
-#  
-#  # Prepare ARPA LM and vocabulary using SRILM
-#  local/prepare_lm.sh data/valid_train
-#  # Prepare the lexicon and various phone lists
-#  # Pronunciations for OOV words are obtained using a pre-trained Sequitur model
-#  local/prepare_dict.sh
-#
-#  # Prepare data/lang and data/local/lang directories
-#  utils/prepare_lang.sh data/local/dict \
-#    '<unk>' data/local/lang data/lang || exit 1
-#
-#  utils/format_lm.sh data/lang data/local/lm.gz data/local/dict/lexicon.txt data/lang_test/
-#fi
-#
+if [ $stage -le 1 ]; then
+ for part in valid-train valid-dev valid-test; do
+   # use underscore-separated names in data directories.
+   local/data_prep.pl $data cv-$part data/$(echo $part | tr - _)
+ done
+ 
+ # Prepare ARPA LM and vocabulary using SRILM
+ local/prepare_lm.sh data/valid_train
+ # Prepare the lexicon and various phone lists
+ # Pronunciations for OOV words are obtained using a pre-trained Sequitur model
+ local/prepare_dict.sh
+
+ # Prepare data/lang and data/local/lang directories
+ utils/prepare_lang.sh data/local/dict \
+   '<unk>' data/local/lang data/lang || exit 1
+
+ utils/format_lm.sh data/lang data/local/lm.gz data/local/dict/lexicon.txt data/lang_test/
+fi
+
 #if [ $stage -le 2 ]; then
 #  mfccdir=mfcc
 #  # spread the mfccs over various machines, as this data-set is quite large.

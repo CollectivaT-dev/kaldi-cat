@@ -3,7 +3,7 @@
 # Copyright   2014  Johns Hopkins University (author: Daniel Povey)
 #             2017  Luminar Technologies, Inc. (author: Daniel Galvez)
 #             2017  Ewald Enzinger
-#	      2022  Col·lectivaT, SCCL (author: Alp Öktem)
+#	            2022  Col·lectivaT, SCCL
 # Apache 2.0
 
 # Adapted from egs/mini_librispeech/s5/local/download_and_untar.sh (commit 1cd6d2ac3a935009fdc4184cb8a72ddad98fe7d9)
