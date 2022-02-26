@@ -5,6 +5,7 @@ Scripts for training a Kaldi speech recognition engine for Catalan
 
 - [x] Kaldi installation and mini-librispeech test run
 - [x] Common voice dataset download scripts
+- [x] Dockerfile
 - [x] Text corpus from Common Voice
 - [x] Builds language model
 - [x] Fake phonetic dictionary
@@ -18,3 +19,4 @@ Scripts for training a Kaldi speech recognition engine for Catalan
 - [ ] Combined train/dev/test1/test2
 - [ ] Test training/evaluation
 - [ ] Documentation
+- [ ] Docker test
