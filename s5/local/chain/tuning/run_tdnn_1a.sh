@@ -16,11 +16,15 @@ set -euo pipefail
 # First the options that are passed through to run_ivector_common.sh
 # (some of which are also used in this script directly).
 stage=0
-decode_nj=10
-train_set=valid_train
-test_sets="valid_dev valid_test"
+decode_nj=$(nproc)
+train_set=train
+test_sets="dev dev_unique test test_unique"
 gmm=tri4b
 nnet3_affix=
+
+use_gpu="wait"
+njob_init=1
+njob_final=1
 
 # The rest are configs specific to this script.  Most of the parameters
 # are just hardcoded at this level, in the commands below.
@@ -202,8 +206,8 @@ if [ $stage -le 14 ]; then
     --trainer.max-param-change=2.0 \
     --trainer.num-epochs=4 \
     --trainer.frames-per-iter=1500000 \
-    --trainer.optimization.num-jobs-initial=3 \
-    --trainer.optimization.num-jobs-final=12 \
+    --trainer.optimization.num-jobs-initial=$njob_init \
+    --trainer.optimization.num-jobs-final=$njob_final \
     --trainer.optimization.initial-effective-lrate=0.001 \
     --trainer.optimization.final-effective-lrate=0.0001 \
     --trainer.optimization.shrink-value=1.0 \
@@ -217,7 +221,7 @@ if [ $stage -le 14 ]; then
     --egs.dir="$common_egs_dir" \
     --egs.opts="--frames-overlap-per-eg 0" \
     --cleanup.remove-egs=$remove_egs \
-    --use-gpu=true \
+    --use-gpu=$use_gpu \
     --reporting.email="$reporting_email" \
     --feat-dir=$train_data_dir \
     --tree-dir=$tree_dir \
@@ -229,7 +233,7 @@ if [ $stage -le 15 ]; then
   # Note: it's not important to give mkgraph.sh the lang directory with the
   # matched topology (since it gets the topology file from the model).
   utils/mkgraph.sh \
-    --self-loop-scale 1.0 data/lang_test \
+    --self-loop-scale 1.0 data/lang \
     $tree_dir $tree_dir/graph || exit 1;
 fi
 

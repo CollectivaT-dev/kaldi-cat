@@ -22,12 +22,12 @@ if [ $# -ne 2 ]; then
 fi
 
 data=$1
-url=$2
-lang=$3
+lang=$2
+
+url=https://mozilla-common-voice-datasets.s3.dualstack.us-west-2.amazonaws.com/cv-corpus-8.0-2022-01-19/cv-corpus-8.0-2022-01-19-$lang.tar.gz
 
 echo datadir: $data
 echo url: $url
-echo lang:$lang
 
 if [ ! -d "$data" ]; then
   echo "$0: no such directory $data"
@@ -78,7 +78,7 @@ fi
 untardir=$(basename $filepath -$lang.tar.gz)
 mv $untardir/$lang .
 rm -r $untardir
- 
+
 touch $data/$lang/.complete
 
 echo "$0: Successfully downloaded and un-tarred $filepath"

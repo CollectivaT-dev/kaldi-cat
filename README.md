@@ -5,10 +5,11 @@ Scripts for training a Kaldi speech recognition engine for Catalan
 
 - [x] Kaldi installation and mini-librispeech test run
 - [x] Common voice dataset download scripts
-- [ ] Text corpus from Common Voice
-- [ ] Builds language model
-- [ ] Phonetic dictionary
-- [ ] Audio data to Kaldi format
+- [x] Text corpus from Common Voice
+- [x] Builds language model
+- [x] Fake phonetic dictionary
+- [x] Audio data to Kaldi format
+- [ ] Proper phonetic dictionary
 - [ ] Custom train/test/dev split
 - [ ] Test training/evaluation
 - [ ] ParlamentParla download scripts
