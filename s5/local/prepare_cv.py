@@ -3,6 +3,11 @@
 import os
 import re
 from argparse import ArgumentParser, Namespace
+import csv
+import os
+import re
+import string
+from unicodedata import normalize
 
 import pandas as pd
 
@@ -15,6 +20,8 @@ def run_parser() -> Namespace:
     parser.add_argument("--labels-path", type=str, required=True, help="Path to labels directory")
     parser.add_argument("--data-path", type=str, required=True, help="Path to data root")
     parser.add_argument("--cv-path", type=str, required=True, help="Path to commonvoice corpus")
+    parser.add_argument("--lexicon-path", type=str, required=True, help="Path to prepared lexicon")
+    parser.add_argument("--phonemes-path", type=str, required=True, help="Path to prepared phoneme set")
     return parser.parse_args()
 
 
@@ -29,9 +36,12 @@ def format_df(df: pd.DataFrame, data_path: str, set_name: str, commonvoice_root:
     spk2utt = open("{set_path}/spk2utt".format(set_path=set_path), "w")
     text = open("{set_path}/text".format(set_path=set_path), "w")
     for i, (path, sent) in df.sort_values("path").iterrows():
-        # tokenize sentence with newmm
-        tokenized_sent = " ".join(newmm.segment(sent.replace(".", "")))
-        tokenized_sent = re.sub(r" +", " ", tokenized_sent)
+        # # tokenize sentence with newmm
+        # tokenized_sent = " ".join(newmm.segment(sent.replace(".", "")))
+        # tokenized_sent = re.sub(r" +", " ", tokenized_sent)
+
+        # clean sentence
+        tokenized_sent = clean_line(sent)
         
         # write files to data/[train,dev,test]
         f_id = path.replace(".wav", "").replace(".mp3", "")
@@ -45,7 +55,61 @@ def format_df(df: pd.DataFrame, data_path: str, set_name: str, commonvoice_root:
     text.close()
 
 
-def prepare_lexicon(data_path: str) -> None:
+# normalize apostrophes, some we will keep
+fix_apos = str.maketrans("`‘’", "'''")
+# anything else we convert to space, and will squash multiples later
+# this will catch things like hyphens where we don't want to concatenate words
+all_but_apos = "".join(i for i in string.punctuation if i != "'")
+all_but_apos += "–—“”"
+clean_punc = str.maketrans(all_but_apos, (" " * len(all_but_apos)))
+# keep only apostrophes between word chars => abbreviations
+clean_apos = re.compile(r"(\W)'(\W)|'(\W)|(\W)'|^'|'$")
+squash_space = re.compile(r"\s{2,}")
+# chars not handled by unicodedata.normalize because not compositions
+bad_chars = {'Æ': 'AE', 'Ð': 'D', 'Ø': 'O', 'Þ': 'TH', 'Œ': 'OE',
+             'æ': 'ae', 'ð': 'd', 'ø': 'o', 'þ': 'th', 'œ': 'oe',
+             'ß': 'ss', 'ƒ': 'f'}
+clean_chars = str.maketrans(bad_chars)
+
+def clean_line(textin):
+    line = textin
+    line = line.translate(fix_apos)
+    line = line.translate(clean_punc)
+    line = re.sub(clean_apos, r"\1 \2", line)
+    line = re.sub(squash_space, r" ", line)
+    line = line.strip(' ')
+    # normalize unicode characters to remove accents etc.
+    line = line.translate(clean_chars)
+    line = normalize('NFD', line).encode('UTF-8', 'ignore')
+    line = line.decode('UTF-8')
+    line = line.lower()
+
+    return line
+
+def prepare_lexicon(data_path: str, source_lexicon_path: str, source_phones_path: str) -> None:
+    """Prepare data/local/lang directory"""
+
+    #TODO: Check if training data has words that are not in dictionary. 
+    # with open("{data_path}/train/text".format(data_path=data_path), "r") as f:
+    #     train_data = [" ".join(line.split(" ")[1:]).strip() for line in f.readlines()]
+    # words = sorted(set([w for sent in train_data for w in sent.split(" ")]))
+    
+    lexicon = ["!SIL SIL_S\n", "<eps> SIL", "<UNK> GBG_S\n"] + [line for line in open(source_lexicon_path, 'r').readlines()]
+    nonsilence_phones = [g+"\n" for g in sorted(set([char[:-1] for char in open(source_phones_path, 'r').readlines()]))]
+    optional_silence = ["sil\n"]
+    silence_phones = ["sil\n", "spn\n"]
+    
+    if not os.path.exists("{data_path}/local/lang".format(data_path=data_path)):
+        os.makedirs("{data_path}/local/lang".format(data_path=data_path))
+    
+    open("{data_path}/local/lang/lexicon.txt".format(data_path=data_path), "w").writelines(lexicon)
+    open("{data_path}/local/lang/nonsilence_phones.txt".format(data_path=data_path), "w").writelines(nonsilence_phones)
+    open("{data_path}/local/lang/optional_silence.txt".format(data_path=data_path), "w").writelines(optional_silence)
+    open("{data_path}/local/lang/silence_phones.txt".format(data_path=data_path), "w").writelines(silence_phones)
+    open("{data_path}/local/lang/extra_questions.txt".format(data_path=data_path), "w").writelines([])
+    
+
+def prepare_lexicon_naive(data_path: str) -> None:
     """Prepare data/local/lang directory"""
     with open("{data_path}/train/text".format(data_path=data_path), "r") as f:
         train_data = [" ".join(line.split(" ")[1:]).strip() for line in f.readlines()]
@@ -79,7 +143,8 @@ def main(args: Namespace) -> None:
     format_df(test, args.data_path, "test", args.cv_path)
     # format_df(test_unique, args.data_path, "test_unique", args.cv_path)
 
-    prepare_lexicon(args.data_path)
+    # prepare_lexicon_naive(args.data_path)
+    prepare_lexicon(args.data_path, args.lexicon_path, args.phonemes_path)
 
 
 if __name__ == "__main__":

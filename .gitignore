@@ -1,2 +1,4 @@
 .DS_Store
 s5/.DS_Store
+s5/data
+s5/data/*

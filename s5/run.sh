@@ -12,7 +12,7 @@
 #labels_path="/mnt/labels"
 
 #local
-cv_base_path="/home/twbgmy/LargeDrive/corpora/commonvoice/"
+cv_base_path="/home/$USER/LargeDrive/corpora/commonvoice/"
 labels_base_path="../labels"
 
 data_path="data"
@@ -36,7 +36,7 @@ fi
 if [ $stage -le 1 ]; then
   # prepare dataset
   echo "python local/prepare_cv.py --labels-path $labels_path --data-path $data_path --cv-path $cv_path"
-  python local/prepare_cv.py --labels-path $labels_path --data-path $data_path --cv-path $cv_path || { echo "Fail running local/prepare_cv.py"; exit 1; }
+  python local/prepare_cv.py --labels-path $labels_path --data-path $data_path --cv-path $cv_path --phonemes-path ../dict/ca/phonemes.txt --lexicon-path ../dict/ca/lexicon.txt || { echo "Fail running local/prepare_cv.py"; exit 1; }
 fi
 
 if [ $stage -le 2 ]; then

@@ -10,7 +10,7 @@ Scripts for training a Kaldi speech recognition engine for Catalan
 - [x] Builds language model
 - [x] Fake phonetic dictionary
 - [x] Audio data to Kaldi format
-- [ ] Proper phonetic dictionary
+- [x] Proper phonetic dictionary
 - [ ] Custom train/test/dev split
 - [ ] Test training/evaluation
 - [ ] ParlamentParla download scripts
