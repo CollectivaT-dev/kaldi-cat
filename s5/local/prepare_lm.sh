@@ -21,7 +21,7 @@ order=3
 # This is cheating but we are trying to reproduce the 
 # experiment results from official which fused both train / dev
 mkdir -p $loctmp
-cat data/train/text > $loctmp/utt.txt
+cat data/train/text data/dev/text > $loctmp/utt.txt
 cut -f2- -d' ' < $loctmp/utt.txt | sed -e 's:[ ]\+: :g' | sort -u > $loctmp/corpus.txt
 rm $loctmp/utt.txt
 
