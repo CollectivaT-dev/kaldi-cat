@@ -23,6 +23,7 @@ lm_order=3  # lm order
 
 stage=0
 lang=ca
+subset=0
 
 . ./utils/parse_options.sh || exit 1;
 
@@ -35,8 +36,8 @@ fi
 
 if [ $stage -le 1 ]; then
   # prepare dataset
-  echo "python local/prepare_cv.py --data-path $data_path --cv-path $cv_path"
-  python local/prepare_cv.py --data-path $data_path --cv-path $cv_path --phonemes-path ../dict/ca/phonemes.txt --lexicon-path ../dict/ca/lexicon.txt || { echo "Fail running local/prepare_cv.py"; exit 1; }
+  echo "python local/prepare_cv.py --data-path $data_path --cv-path $cv_path --phonemes-path ../dict/ca/phonemes.txt --lexicon-path ../dict/ca/lexicon.txt --subset $subset"
+  python local/prepare_cv.py --data-path $data_path --cv-path $cv_path --phonemes-path ../dict/ca/phonemes.txt --lexicon-path ../dict/ca/lexicon.txt  --subset $subset || { echo "Fail running local/prepare_cv.py"; exit 1; }
 fi
 
 if [ $stage -le 2 ]; then

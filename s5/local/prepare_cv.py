@@ -22,12 +22,15 @@ def run_parser() -> Namespace:
     parser.add_argument("--cv-path", type=str, required=True, help="Path to commonvoice corpus")
     parser.add_argument("--lexicon-path", type=str, required=True, help="Path to prepared lexicon")
     parser.add_argument("--phonemes-path", type=str, required=True, help="Path to prepared phoneme set")
+    parser.add_argument("--subset", type=int, required=False, default=0, help="Subset sets to size")
     return parser.parse_args()
 
 
-def format_df(df: pd.DataFrame, data_path: str, set_name: str, commonvoice_root: str, sr: int = 16000) -> None:
+def format_df(df: pd.DataFrame, data_path: str, set_name: str, commonvoice_root: str, sr: int = 16000, subset: int = 0) -> None:
     """Format train/dev/test dataframe and stored in data root"""
     df = df[["path", "sentence"]]
+    if subset:
+        df = df[:subset]
     set_path = "{data_path}/{set_name}".format(data_path=data_path, set_name=set_name)
     if not os.path.exists(set_path):
         os.makedirs(set_path)
@@ -135,9 +138,9 @@ def main(args: Namespace) -> None:
     dev = pd.read_csv(args.cv_path+"/dev.tsv", delimiter="\t")
     test = pd.read_csv(args.cv_path+"/test.tsv", delimiter="\t")
 
-    format_df(train, args.data_path, "train", args.cv_path)
-    format_df(dev, args.data_path, "dev", args.cv_path)
-    format_df(test, args.data_path, "test", args.cv_path)
+    format_df(train, args.data_path, "train", args.cv_path, subset=args.subset)
+    format_df(dev, args.data_path, "dev", args.cv_path, subset=args.subset)
+    format_df(test, args.data_path, "test", args.cv_path, subset=args.subset)
 
     #prepare_lexicon_naive(args.data_path)
     prepare_lexicon(args.data_path, args.lexicon_path, args.phonemes_path)
