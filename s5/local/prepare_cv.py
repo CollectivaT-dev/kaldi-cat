@@ -17,7 +17,7 @@ from pythainlp.tokenize import newmm
 def run_parser() -> Namespace:
     """Run argument parser"""
     parser = ArgumentParser()
-    parser.add_argument("--labels-path", type=str, required=True, help="Path to labels directory")
+    #parser.add_argument("--labels-path", type=str, required=True, help="Path to labels directory")
     parser.add_argument("--data-path", type=str, required=True, help="Path to data root")
     parser.add_argument("--cv-path", type=str, required=True, help="Path to commonvoice corpus")
     parser.add_argument("--lexicon-path", type=str, required=True, help="Path to prepared lexicon")
@@ -131,19 +131,15 @@ def prepare_lexicon_naive(data_path: str) -> None:
     
     
 def main(args: Namespace) -> None:
-    train = pd.read_csv(args.labels_path+"/train.tsv", delimiter="\t")
-    dev = pd.read_csv(args.labels_path+"/dev.tsv", delimiter="\t")
-    #dev_unique = pd.read_csv(args.labels_path+"/dev-unique.tsv", delimiter="\t")
-    test = pd.read_csv(args.labels_path+"/test.tsv", delimiter="\t")
-    #test_unique = pd.read_csv(args.labels_path+"/test-unique.tsv", delimiter="\t")
+    train = pd.read_csv(args.cv_path+"/train.tsv", delimiter="\t")
+    dev = pd.read_csv(args.cv_path+"/dev.tsv", delimiter="\t")
+    test = pd.read_csv(args.cv_path+"/test.tsv", delimiter="\t")
 
     format_df(train, args.data_path, "train", args.cv_path)
     format_df(dev, args.data_path, "dev", args.cv_path)
-    # format_df(dev_unique, args.data_path, "dev_unique", args.cv_path)
     format_df(test, args.data_path, "test", args.cv_path)
-    # format_df(test_unique, args.data_path, "test_unique", args.cv_path)
 
-    # prepare_lexicon_naive(args.data_path)
+    #prepare_lexicon_naive(args.data_path)
     prepare_lexicon(args.data_path, args.lexicon_path, args.phonemes_path)
 
 
