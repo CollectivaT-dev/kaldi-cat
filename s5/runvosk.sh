@@ -55,7 +55,7 @@ if [ $stage -le 2 ]; then
 fi
 
 # Extract MFCC features
-if [ $stage -le 2 ]; then
+if [ $stage -le 3 ]; then
   for task in train; do
     steps/make_mfcc.sh --cmd "$train_cmd" --nj 10 data/$task exp/make_mfcc/$task $mfcc
     steps/compute_cmvn_stats.sh data/$task exp/make_mfcc/$task $mfcc
@@ -63,7 +63,7 @@ if [ $stage -le 2 ]; then
 fi
 
 # Train GMM models
-if [ $stage -le 3 ]; then
+if [ $stage -le 4 ]; then
   steps/train_mono.sh --nj 10 --cmd "$train_cmd" \
     data/train data/lang exp/mono
 
@@ -90,12 +90,12 @@ if [ $stage -le 3 ]; then
 fi
 
 # Train TDNN model
-if [ $stage -le 4 ]; then
+if [ $stage -le 5 ]; then
   local/chain/run_tdnn.sh
 fi
 
 # Decode
-if [ $stage -le 5 ]; then
+if [ $stage -le 6 ]; then
 
   utils/format_lm.sh data/lang data/local/lm/lm_tgsmall.arpa.gz data/local/lang/lexicon.txt data/lang_test
   utils/mkgraph.sh --self-loop-scale 1.0 data/lang_test exp/chain/tdnn exp/chain/tdnn/graph
@@ -121,5 +121,5 @@ if [ $stage -le 5 ]; then
         data/${task} exp/chain/tdnn/decode_${task} exp/chain/tdnn/decode_${task}_rescore
   done
 
-  bash RESULTS
+  bash RESULTS.sh
 fi
