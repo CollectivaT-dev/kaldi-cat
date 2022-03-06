@@ -2,3 +2,10 @@
 s5/.DS_Store
 s5/data
 s5/data/*
+s5/exp/
+s5/exp/*
+s5/mfcc/
+s5/mfcc/*
+s5/run.log
+exp
+exp/*
