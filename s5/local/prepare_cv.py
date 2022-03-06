@@ -94,7 +94,7 @@ def prepare_lexicon(data_path: str, source_lexicon_path: str, source_phones_path
     #     train_data = [" ".join(line.split(" ")[1:]).strip() for line in f.readlines()]
     # words = sorted(set([w for sent in train_data for w in sent.split(" ")]))
     
-    lexicon = ["!SIL SIL_S\n", "<eps> SIL", "<UNK> GBG_S\n"] + [line for line in open(source_lexicon_path, 'r').readlines()]
+    lexicon = ["!SIL sil\n", "<UNK> spn\n"] + [line for line in open(source_lexicon_path, 'r').readlines()]
     nonsilence_phones = [g+"\n" for g in sorted(set([char[:-1] for char in open(source_phones_path, 'r').readlines()]))]
     optional_silence = ["sil\n"]
     silence_phones = ["sil\n", "spn\n"]
