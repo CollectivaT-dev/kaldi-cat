@@ -16,7 +16,7 @@ if [ "$1" == --remove-archive ]; then
 fi
 
 if [ $# -ne 2 ]; then
-  echo "Usage: $0 [--remove-archive] <data-base> <url>"
+  echo "Usage: $0 [--remove-archive] <data-base> <lang>"
   echo "e.g.: $0 /export/data/ https://common-voice-data-download.s3.amazonaws.com/cv_corpus_v1.tar.gz"
   echo "With --remove-archive it will remove the archive after successfully un-tarring it."
 fi
