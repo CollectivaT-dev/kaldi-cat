@@ -40,8 +40,7 @@ if [ -f $data/.complete ]; then
   exit 0;
 fi
 
-#for url in $dev_url $test_url $train_url; do
-for url in $dev_url $test_url ; do
+for url in $dev_url $test_url $train_url; do
   echo downloading: $url
   filename=$(basename $url)
   filepath="$data/$filename"
