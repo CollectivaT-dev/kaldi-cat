@@ -12,8 +12,9 @@
 #labels_path="/mnt/labels"
 
 #local
-cv_base_path="/home/$USER/LargeDrive/corpora/commonvoice"
-labels_base_path="../labels"
+corpora_base_path="/home/$USER/LargeDrive/corpora"
+cv_base_path="$corpora_base_path/commonvoice"
+pp_base_path="$corpora_base_path/PP"
 
 data_path="data"
 mfccdir=mfcc
@@ -28,10 +29,12 @@ subset=0
 . ./utils/parse_options.sh || exit 1;
 
 cv_path=$cv_base_path/$lang
-labels_path=$labels_base_path/$lang
 
 if [ $stage -le 0 ]; then
+  mkdir -p $cv_base_path
   local/download_and_untar.sh $cv_base_path $lang
+  mkdir -p $pp_base_path
+  local/download_and_untar_PP.sh --remove-archive $pp_base_path
 fi
 
 if [ $stage -le 1 ]; then
