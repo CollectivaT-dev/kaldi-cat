@@ -55,7 +55,7 @@ def format_df_pp(df: pd.DataFrame, pp_root: str, subset: int = 0) -> pd.DataFram
     df_kaldi = pd.DataFrame(columns=kaldi_columns)
 
     for i, (path, sent, s_id) in df.iterrows():
-        f_id = s_id + '+' + '_'.join(path.split('_')[1:]).replace('/','_')[:-4]
+        f_id = str(s_id) + '_' + '_'.join(path.split('_')[1:]).replace('/','_')[:-4]
         wav = "{pp_root}/{path}".format(pp_root=pp_root, path=path)
         df_kaldi.loc[i] = [f_id, s_id, sent, wav]
 
@@ -85,6 +85,8 @@ def df_to_data(df: pd.DataFrame, data_path: str, set_name: str, subset: int = 0)
     utt2spk.close()
     spk2utt.close()
     text.close()
+
+    print(set_name, len(df))
 
 # normalize apostrophes, some we will keep
 fix_apos = str.maketrans("`‘’", "'''")
@@ -201,8 +203,8 @@ def main(args: Namespace) -> None:
         merged_train_kaldi = pd.concat([cv_train_kaldi, pp_train_kaldi], axis=0)
         merged_dev_kaldi = pd.concat([cv_dev_kaldi, pp_dev_kaldi], axis=0)
 
-        df_to_data(merged_train_kaldi, args.data_path, "train")
-        df_to_data(merged_dev_kaldi, args.data_path, "dev")
+        df_to_data(merged_train_kaldi, args.data_path, "train", subset=args.subset)
+        df_to_data(merged_dev_kaldi, args.data_path, "dev", subset=args.subset)
 
         print("Merged train/dev data prepared in", args.data_path)
 
