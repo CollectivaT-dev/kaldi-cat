@@ -206,8 +206,8 @@ def main(args: Namespace) -> None:
         merged_train_kaldi = pd.concat([cv_train_kaldi, pp_train_kaldi], axis=0)
         merged_dev_kaldi = pd.concat([cv_dev_kaldi, pp_dev_kaldi], axis=0)
 
-        df_to_data(merged_train_kaldi, args.data_path, "train", subset=args.subset)
-        df_to_data(merged_dev_kaldi, args.data_path, "dev", subset=args.subset)
+        df_to_data(merged_train_kaldi, args.data_path, "train")
+        df_to_data(merged_dev_kaldi, args.data_path, "dev")
 
         print("Merged train/dev data prepared in", args.data_path)
 
