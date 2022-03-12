@@ -31,7 +31,7 @@ subset=0
 cv_path=$cv_base_path/$lang
 
 if [ $stage -le 0 ]; then
-  echo 0: download and untar
+  echo ">> 0: download and untar"
 
   mkdir -p $cv_base_path
   local/download_and_untar_CV.sh $cv_base_path $lang

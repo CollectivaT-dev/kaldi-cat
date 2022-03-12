@@ -37,11 +37,12 @@ def format_df_cv(df: pd.DataFrame, commonvoice_root: str, sr: int = 16000, subse
     kaldi_columns = ['f_id', 's_id', 'sent', 'wav']
     df_kaldi = pd.DataFrame(columns=kaldi_columns)
 
-    for i, (path, sent, s_id) in df.iterrows():
+    for i, (path, sent, s_id) in df.sort_values("path").iterrows():
         clean_sent = clean_line(sent)
-        f_id = s_id + '_' + path.replace(".wav", "").replace(".mp3", "")
+        #f_id = s_id + '_' + path.replace(".wav", "").replace(".mp3", "")  #Skips spk label 
+        f_id = path.replace(".wav", "").replace(".mp3", "")
         wav = "sox {commonvoice_root}/clips/{path} -t wav -r {sr} -c 1 -b 16 - |".format(commonvoice_root=commonvoice_root, path=path, sr=sr)
-        df_kaldi.loc[i] = [f_id, s_id, clean_sent, wav]
+        df_kaldi.loc[i] = [f_id, f_id, clean_sent, wav]
 
     return df_kaldi
 
@@ -54,10 +55,12 @@ def format_df_pp(df: pd.DataFrame, pp_root: str, subset: int = 0) -> pd.DataFram
     kaldi_columns = ['f_id', 's_id', 'sent', 'wav']
     df_kaldi = pd.DataFrame(columns=kaldi_columns)
 
-    for i, (path, sent, s_id) in df.iterrows():
-        f_id = str(s_id) + '_' + '_'.join(path.split('_')[1:]).replace('/','_')[:-4]
+    for i, (path, sent, s_id) in df.sort_values("path").iterrows():
+        #s_id_formatted = "s" + "%03d"%s_id #Skips spk label
+        #f_id = s_id_formatted + '_' + '_'.join(path.split('_')[1:]).replace('/','_')[:-4] #Skips spk label
+        f_id = '_'.join(path.split('_')[1:]).replace('/','_')[:-4]
         wav = "{pp_root}/{path}".format(pp_root=pp_root, path=path)
-        df_kaldi.loc[i] = [f_id, s_id, sent, wav]
+        df_kaldi.loc[i] = [f_id, f_id, sent, wav]
 
     return df_kaldi
 
