@@ -69,6 +69,7 @@ fi
 
 # train monophone
 if [ $stage -le 4 ]; then
+  echo ">> 4: train monophone"
   steps/train_mono.sh --boost-silence 1.25 --nj $njobs --cmd "$train_cmd" \
     data/train data/lang exp/mono || { echo "Error training mono"; exit 1; };
   (
@@ -84,6 +85,7 @@ fi
 
 # train delta + delta-delta triphone
 if [ $stage -le 5 ]; then
+  echo ">>5: train delta + delta-delta triphone"
   steps/train_deltas.sh --boost-silence 1.25 --cmd "$train_cmd" \
     2000 10000 data/train data/lang exp/mono_ali_train exp/tri1 || { echo "Error training delta tri1"; exit 1; }
 
@@ -102,11 +104,12 @@ fi
 
 # LDA+MLLT
 if [ $stage -le 6 ]; then
+  echo ">>6a: train LDA+MLLT"
   steps/train_lda_mllt.sh --cmd "$train_cmd" \
     --splice-opts "--left-context=3 --right-context=3" 2500 15000 \
       data/train data/lang exp/tri1_ali_train exp/tri2b || { echo "Error training tri2b (LDA+MLLT)"; exit 1; }
 
-  # decode LDA+MLTT
+  echo ">>6b: decode LDA+MLTT"
   utils/mkgraph.sh data/lang exp/tri2b exp/tri2b/graph || { echo "Error making graph for tri2b"; exit 1; }
   (
     for testset in dev; do
@@ -115,17 +118,18 @@ if [ $stage -le 6 ]; then
     done
   )&
 
-  # Align using tri2b
+  echo ">>6c: align using tri2b"
   steps/align_si.sh --nj $njobs --cmd "$train_cmd" --use-graphs true \
     data/train data/lang exp/tri2b exp/tri2b_ali_train || { echo "Error aligning tri2b"; exit 1; }
 fi
 
 # tri3b, LDA+MLLT+SAT
 if [ $stage -le 7 ]; then
+  echo ">>7a: train LDA+MLLT"
   steps/train_sat.sh --cmd "$train_cmd" 2500 15000 \
     data/train data/lang exp/tri2b_ali_train exp/tri3b || { echo "Error training tri3b (LDA+MLLT+SAT)"; exit 1; }
 
-  # decode using the tri3b model
+  echo ">>7b: decode using the tri3b model"
   (
     utils/mkgraph.sh data/lang exp/tri3b exp/tri3b/graph || { echo "Error making graph for tri3b"; exit 1; }
     for testset in dev; do
@@ -136,17 +140,17 @@ if [ $stage -le 7 ]; then
 fi
 
 if [ $stage -le 8 ]; then
-  # Align utts in the full training set using the tri3b model
+  echo ">>8a: align utts in the full training set using the tri3b model"
   steps/align_fmllr.sh --nj $njobs --cmd "$train_cmd" \
     data/train data/lang \
     exp/tri3b exp/tri3b_ali_train || { echo "Error aligning FMLLR for tri4b"; exit 1; }
 
-  # train another LDA+MLLT+SAT system on the entire training set
+  echo ">>8b: train another LDA+MLLT+SAT system on the entire training set"
   steps/train_sat.sh  --cmd "$train_cmd" 4200 40000 \
     data/train data/lang \
     exp/tri3b_ali_train exp/tri4b || { echo "Error training tri4b"; exit 1; }
 
-  # decode using the tri4b model
+  echo ">>8c: decode using the tri4b model"
   (
     utils/mkgraph.sh data/lang exp/tri4b exp/tri4b/graph || { echo "Error making graph for tri4b"; exit 1; }
     for testset in dev; do
@@ -159,6 +163,7 @@ fi
 
 # train a chain model
 if [ $stage -le 9 ]; then
+  echo ">>9: train a chain model"
   local/chain/run_tdnn.sh --stage 0
 fi
 
