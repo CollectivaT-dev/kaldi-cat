@@ -28,52 +28,56 @@ def run_parser() -> Namespace:
     return parser.parse_args()
 
 
-def format_df_cv(df: pd.DataFrame, data_path: str, set_name: str, commonvoice_root: str, sr: int = 16000, subset: int = 0) -> None:
+def format_df_cv(df: pd.DataFrame, commonvoice_root: str, sr: int = 16000, subset: int = 0) -> pd.DataFrame:
     """Format CommonVoice train/dev/test dataframe and store in data root"""
-    df = df[["path", "sentence"]]
+    df = df[["path", "sentence", "client_id"]]
     if subset:
         df = df[:subset]
-    set_path = "{data_path}/cv_{set_name}".format(data_path=data_path, set_name=set_name)
-    if not os.path.exists(set_path):
-        os.makedirs(set_path)
-    wav_scp = open("{set_path}/wav.scp".format(set_path=set_path), "w")
-    utt2spk = open("{set_path}/utt2spk".format(set_path=set_path), "w")
-    spk2utt = open("{set_path}/spk2utt".format(set_path=set_path), "w")
-    text = open("{set_path}/text".format(set_path=set_path), "w")
-    for i, (path, sent) in df.sort_values("path").iterrows():
-        # # tokenize sentence with newmm
-        # tokenized_sent = " ".join(newmm.segment(sent.replace(".", "")))
-        # tokenized_sent = re.sub(r" +", " ", tokenized_sent)
 
-        # clean sentence
-        tokenized_sent = clean_line(sent)
-        
-        # write files to data/[train,dev,test]
+    kaldi_columns = ['f_id', 's_id', 'sent', 'wav']
+    df_kaldi = pd.DataFrame(columns=kaldi_columns)
+
+    for i, (path, sent, s_id) in df.iterrows():
+        clean_sent = clean_line(sent)
         f_id = path.replace(".wav", "").replace(".mp3", "")
-        wav_scp.write("{f_id} sox {commonvoice_root}/clips/{path} -t wav -r {sr} -c 1 -b 16 - |\n".format(f_id=f_id, commonvoice_root=commonvoice_root, path=path, sr=sr))
-        utt2spk.write("{f_id} {f_id}\n".format(f_id=f_id))  # we wont specify spk id here
-        spk2utt.write("{f_id} {f_id}\n".format(f_id=f_id))
-        text.write("{f_id} {tokenized_sent}\n".format(f_id=f_id, tokenized_sent=tokenized_sent))
-    wav_scp.close()
-    utt2spk.close()
-    spk2utt.close()
-    text.close()
+        wav = "sox {commonvoice_root}/clips/{path} -t wav -r {sr} -c 1 -b 16 - |".format(commonvoice_root=commonvoice_root, path=path, sr=sr)
+        df_kaldi.loc[i] = [f_id, s_id, clean_sent, wav]
 
-def format_df_pp(df: pd.DataFrame, data_path: str, set_name: str, pp_root: str, subset: int = 0) -> None:
-    """Format ParlamentParla train/dev/test dataframe and store in data root"""
+    return df_kaldi
+
+
+def format_df_pp(df: pd.DataFrame, pp_root: str, subset: int = 0) -> pd.DataFrame:
     df = df[["path", "sentence", "speaker_id"]]
     if subset:
         df = df[:subset]
-    set_path = "{data_path}/pp_{set_name}".format(data_path=data_path, set_name=set_name)
+
+    kaldi_columns = ['f_id', 's_id', 'sent', 'wav']
+    df_kaldi = pd.DataFrame(columns=kaldi_columns)
+
+    for i, (path, sent, s_id) in df.iterrows():
+        f_id = '_'.join(path.split('_')[1:]).replace('/','_')[:-4]
+        wav = "{pp_root}/{path}".format(pp_root=pp_root, path=path)
+        df_kaldi.loc[i] = [f_id, s_id, sent, wav]
+
+    return df_kaldi
+
+def df_to_data(df: pd.DataFrame, data_path: str, set_name: str, subset: int = 0) -> None:
+    if subset:
+        df = df[:subset]
+
+    set_path = "{data_path}/{set_name}".format(data_path=data_path, set_name=set_name)
     if not os.path.exists(set_path):
         os.makedirs(set_path)
+    else:
+        print("WARNING: Overwriting in directory", set_path)
+
     wav_scp = open("{set_path}/wav.scp".format(set_path=set_path), "w")
     utt2spk = open("{set_path}/utt2spk".format(set_path=set_path), "w")
     spk2utt = open("{set_path}/spk2utt".format(set_path=set_path), "w")
     text = open("{set_path}/text".format(set_path=set_path), "w")
-    for i, (path, sent, s_id) in df.sort_values("path").iterrows():
-        f_id = '_'.join(path.split('_')[1:]).replace('/','_')[:-4]
-        wav_scp.write("{f_id} {pp_root}/{path}\n".format(f_id=f_id, pp_root=pp_root, path=path))
+
+    for i, (f_id, s_id, sent, wav) in df.sort_values("f_id").iterrows():
+        wav_scp.write("{f_id} {wav}\n".format(f_id=f_id, wav=wav))
         utt2spk.write("{f_id} {s_id}\n".format(f_id=f_id, s_id=s_id))  # we wont specify spk id here
         spk2utt.write("{s_id} {f_id}\n".format(f_id=f_id, s_id=s_id))
         text.write("{f_id} {sent}\n".format(f_id=f_id, sent=sent))
@@ -81,7 +85,6 @@ def format_df_pp(df: pd.DataFrame, data_path: str, set_name: str, pp_root: str, 
     utt2spk.close()
     spk2utt.close()
     text.close()
-
 
 # normalize apostrophes, some we will keep
 fix_apos = str.maketrans("`‘’", "'''")
@@ -160,30 +163,48 @@ def prepare_lexicon_naive(data_path: str) -> None:
     
 def main(args: Namespace) -> None:
     if args.cv_path:
-        train = pd.read_csv(args.cv_path+"/train.tsv", delimiter="\t")
-        dev = pd.read_csv(args.cv_path+"/dev.tsv", delimiter="\t")
-        test = pd.read_csv(args.cv_path+"/test.tsv", delimiter="\t")
+        cv_train = pd.read_csv(args.cv_path+"/train.tsv", delimiter="\t")
+        cv_dev = pd.read_csv(args.cv_path+"/dev.tsv", delimiter="\t")
+        cv_test = pd.read_csv(args.cv_path+"/test.tsv", delimiter="\t")
 
-        format_df_cv(train, args.data_path, "train", args.cv_path, subset=args.subset)
-        format_df_cv(dev, args.data_path, "dev", args.cv_path, subset=args.subset)
-        format_df_cv(test, args.data_path, "test", args.cv_path, subset=args.subset)
+        cv_train_kaldi = format_df_cv(cv_train, args.cv_path, subset=args.subset)
+        cv_dev_kaldi = format_df_cv(cv_dev, args.cv_path, subset=args.subset)
+        cv_test_kaldi = format_df_cv(cv_test, args.cv_path, subset=args.subset)
+
+        df_to_data(cv_train_kaldi, args.data_path, "cv_train")
+        df_to_data(cv_dev_kaldi, args.data_path, "cv_dev")
+        df_to_data(cv_test_kaldi, args.data_path, "cv_test")
 
         print("Commonvoice data prepared in", args.data_path)
     else:
         print("WARNING: CV path (--cv-path) not given.")
 
     if args.pp_path:
-        train = pd.read_csv(args.pp_path+"/clean_train.tsv", delimiter="\t")
-        dev = pd.read_csv(args.pp_path+"/clean_dev.tsv", delimiter="\t")
-        test = pd.read_csv(args.pp_path+"/clean_test.tsv", delimiter="\t")
+        pp_train = pd.read_csv(args.pp_path+"/clean_train.tsv", delimiter="\t")
+        pp_dev = pd.read_csv(args.pp_path+"/clean_dev.tsv", delimiter="\t")
+        pp_test = pd.read_csv(args.pp_path+"/clean_test.tsv", delimiter="\t")
 
-        format_df_pp(train, args.data_path, "train", args.cv_path, subset=args.subset)
-        format_df_pp(dev, args.data_path, "dev", args.pp_path, subset=args.subset)
-        format_df_pp(test, args.data_path, "test", args.cv_path, subset=args.subset)
+        pp_train_kaldi = format_df_pp(pp_train, args.pp_path, subset=args.subset)
+        pp_dev_kaldi = format_df_pp(pp_dev, args.pp_path, subset=args.subset)
+        pp_test_kaldi = format_df_pp(pp_test, args.pp_path, subset=args.subset)
+
+        df_to_data(pp_train_kaldi, args.data_path, "pp_train")
+        df_to_data(pp_dev_kaldi, args.data_path, "pp_dev")
+        df_to_data(pp_test_kaldi, args.data_path, "pp_test")
 
         print("ParlamentParla data prepared in", args.data_path)
     else:
         print("WARNING: PP path (--pp-path) not given.")
+
+    if args.pp_path and args.cv_path:
+
+        merged_train_kaldi = pd.concat([cv_train_kaldi, pp_train_kaldi], axis=0)
+        merged_dev_kaldi = pd.concat([cv_dev_kaldi, pp_dev_kaldi], axis=0)
+
+        df_to_data(merged_train_kaldi, args.data_path, "train")
+        df_to_data(merged_dev_kaldi, args.data_path, "dev")
+
+        print("Merged train/dev data prepared in", args.data_path)
 
     #prepare_lexicon_naive(args.data_path)
     if args.lexicon_path and args.phonemes_path:

@@ -41,19 +41,9 @@ if [ $stage -le 0 ]; then
 fi
 
 if [ $stage -le 1 ]; then
-  echo 1a: prepare datasets
+  echo 1: prepare datasets
   echo "python local/prepare_cv.py --data-path $data_path --cv-path $cv_path --pp-path $pp_base_path --phonemes-path ../dict/ca/phonemes.txt --lexicon-path ../dict/ca/lexicon.txt --subset $subset"
   python local/prepare_data.py --data-path $data_path --cv-path $cv_path --pp-path $pp_base_path --phonemes-path ../dict/ca/phonemes.txt --lexicon-path ../dict/ca/lexicon.txt  --subset $subset || { echo "Fail running local/prepare_cv.py"; exit 1; }
-
-  mkdir -p $data_path/dev
-  mkdir -p $data_path/train
-
-  echo 1b: merge datasets
-  for set in train dev; do
-    for file in spk2utt text utt2spk wav.scp; do
-      cat $data_path/cv_$set/$file $data_path/pp_$set/$file > $data_path/$set/$file
-    done
-  done
 fi
 
 if [ $stage -le 2 ]; then
