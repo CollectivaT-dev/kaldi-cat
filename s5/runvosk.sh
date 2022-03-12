@@ -31,7 +31,7 @@ subset=0
 cv_path=$cv_base_path/$lang
 
 if [ $stage -le 0 ]; then
-  echo 0: download and untar
+  echo ">> 0: download and untar"
   
   mkdir -p $cv_base_path
   local/download_and_untar_CV.sh $cv_base_path $lang
@@ -41,26 +41,26 @@ if [ $stage -le 0 ]; then
 fi
 
 if [ $stage -le 1 ]; then
-  echo 1: prepare datasets
+  echo ">> 1: prepare datasets"
   echo "python local/prepare_cv.py --data-path $data_path --cv-path $cv_path --pp-path $pp_base_path --phonemes-path ../dict/ca/phonemes.txt --lexicon-path ../dict/ca/lexicon.txt --subset $subset"
   python local/prepare_data.py --data-path $data_path --cv-path $cv_path --pp-path $pp_base_path --phonemes-path ../dict/ca/phonemes.txt --lexicon-path ../dict/ca/lexicon.txt  --subset $subset || { echo "Fail running local/prepare_cv.py"; exit 1; }
 fi
 
 if [ $stage -le 2 ]; then
-  echo 2a: validate prepared data
+  echo ">> 2a: validate prepared data"
   for part in train dev cv_test pp_test; do
     utils/validate_data_dir.sh --no-feats data/$part || { echo "Fail validating $part"; exit 1; }
   done
 
+  echo ">> 2b: prepare LM and format to G.fst"
   utils/prepare_lang.sh data/local/lang '<UNK>' data/local data/lang
-
-  echo 2b: prepare LM and format to G.fst
+  
   local/prepare_lm.sh --order $lm_order || { echo "Fail preparing LM"; exit 1; }
   local/format_data.sh || { echo "Fail creating G.fst"; exit 1; }
 fi
 
 if [ $stage -le 3 ]; then
-  echo 3: extract MFCC features (make_mfcc)
+  echo ">> 3: extract MFCC features (make_mfcc)"
   for task in train; do
     steps/make_mfcc.sh --cmd "$train_cmd" --nj 10 data/$task exp/make_mfcc/$task $mfcc
     steps/compute_cmvn_stats.sh data/$task exp/make_mfcc/$task $mfcc
