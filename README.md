@@ -12,9 +12,10 @@ Scripts for training a Kaldi speech recognition engine for Catalan
 - [x] Audio data to Kaldi format
 - [x] Proper phonetic dictionary
 - [ ] Test training/evaluation
-- [ ] ParlamentParla download scripts
-- [ ] PP to Kaldi format
-- [ ] Combined train/dev/test1/test2
+- [x] ParlamentParla download scripts
+- [x] PP to Kaldi format
+- [x] Combined train/dev/test1/test2
 - [ ] Test training/evaluation
 - [ ] Documentation
 - [ ] Docker test
+- [ ] G2P model

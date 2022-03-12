@@ -31,44 +31,50 @@ subset=0
 cv_path=$cv_base_path/$lang
 
 if [ $stage -le 0 ]; then
+  echo 0: download and untar
+
   mkdir -p $cv_base_path
-  local/download_and_untar.sh $cv_base_path $lang
+  local/download_and_untar_CV.sh $cv_base_path $lang
+
   mkdir -p $pp_base_path
   local/download_and_untar_PP.sh --remove-archive $pp_base_path
 fi
 
 if [ $stage -le 1 ]; then
-  # prepare dataset
-  echo "python local/prepare_cv.py --data-path $data_path --cv-path $cv_path --phonemes-path ../dict/ca/phonemes.txt --lexicon-path ../dict/ca/lexicon.txt --subset $subset"
-  python local/prepare_cv.py --data-path $data_path --cv-path $cv_path --phonemes-path ../dict/ca/phonemes.txt --lexicon-path ../dict/ca/lexicon.txt  --subset $subset || { echo "Fail running local/prepare_cv.py"; exit 1; }
+  echo 1a: prepare datasets
+  echo "python local/prepare_cv.py --data-path $data_path --cv-path $cv_path --pp-path $pp_base_path --phonemes-path ../dict/ca/phonemes.txt --lexicon-path ../dict/ca/lexicon.txt --subset $subset"
+  python local/prepare_data.py --data-path $data_path --cv-path $cv_path --pp-path $pp_base_path --phonemes-path ../dict/ca/phonemes.txt --lexicon-path ../dict/ca/lexicon.txt  --subset $subset || { echo "Fail running local/prepare_cv.py"; exit 1; }
+
+  mkdir -p $data_path/dev
+  mkdir -p $data_path/train
+
+  echo 1b: merge datasets
+  for set in train dev; do
+    for file in spk2utt text utt2spk wav.scp; do
+      cat $data_path/cv_$set/$file $data_path/pp_$set/$file > $data_path/$set/$file
+    done
+  done
 fi
 
 if [ $stage -le 2 ]; then
-  # validate prepared data
-  #for part in train dev dev_unique test test_unique; do
-  for part in train dev test; do
+  echo 2a: validate prepared data
+  for part in train dev cv_test pp_test; do
     utils/validate_data_dir.sh --no-feats data/$part || { echo "Fail validating $part"; exit 1; }
   done
 
   utils/prepare_lang.sh data/local/lang '<UNK>' data/local data/lang
 
-  # prepare LM and format to G.fst
+  echo 2b: prepare LM and format to G.fst
   local/prepare_lm.sh --order $lm_order || { echo "Fail preparing LM"; exit 1; }
   local/format_data.sh || { echo "Fail creating G.fst"; exit 1; }
 fi
 
 if [ $stage -le 3 ]; then
-  # create MFCC feats
+  echo 3: create MFCC feats (make_mfcc_pitch)
   for part in train dev test; do
     steps/make_mfcc_pitch.sh --cmd "$train_cmd" --nj $njobs data/$part exp/make_mfcc/$part $mfccdir || { echo "Error make MFCC features"; exit 1; }
     steps/compute_cmvn_stats.sh data/$part exp/make_mfcc/$part $mfccdir || { echo "Error computing CMVN"; exit 1; }
   done
-
-  # get shortest K utterances first, likely to have more accurate alignment
-  # follows main recipe but K need to be modified (K=10000 default)
-  # i'll use 2000 for this case as TH commonvoice is a lot smaller
-  # utils/subset_data_dir.sh --shortest data/train 2000 data/train_2kshort || exit 1;
-  # utils/subset_data_dir.sh data/train 20000 data/train_20k || exit 1;
 fi
 
 # train monophone

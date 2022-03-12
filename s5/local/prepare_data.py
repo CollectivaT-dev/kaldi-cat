@@ -8,6 +8,7 @@ import os
 import re
 import string
 from unicodedata import normalize
+from typing import List
 
 import pandas as pd
 
@@ -19,19 +20,20 @@ def run_parser() -> Namespace:
     parser = ArgumentParser()
     #parser.add_argument("--labels-path", type=str, required=True, help="Path to labels directory")
     parser.add_argument("--data-path", type=str, required=True, help="Path to data root")
-    parser.add_argument("--cv-path", type=str, required=True, help="Path to commonvoice corpus")
-    parser.add_argument("--lexicon-path", type=str, required=True, help="Path to prepared lexicon")
-    parser.add_argument("--phonemes-path", type=str, required=True, help="Path to prepared phoneme set")
+    parser.add_argument("--cv-path", type=str, required=False, help="Path to commonvoice corpus")
+    parser.add_argument("--pp-path", type=str, required=False, help="Path to ParlamentParla corpus")
+    parser.add_argument("--lexicon-path", type=str, required=False, help="Path to prepared lexicon")
+    parser.add_argument("--phonemes-path", type=str, required=False, help="Path to prepared phoneme set")
     parser.add_argument("--subset", type=int, required=False, default=0, help="Subset sets to size")
     return parser.parse_args()
 
 
-def format_df(df: pd.DataFrame, data_path: str, set_name: str, commonvoice_root: str, sr: int = 16000, subset: int = 0) -> None:
-    """Format train/dev/test dataframe and stored in data root"""
+def format_df_cv(df: pd.DataFrame, data_path: str, set_name: str, commonvoice_root: str, sr: int = 16000, subset: int = 0) -> None:
+    """Format CommonVoice train/dev/test dataframe and store in data root"""
     df = df[["path", "sentence"]]
     if subset:
         df = df[:subset]
-    set_path = "{data_path}/{set_name}".format(data_path=data_path, set_name=set_name)
+    set_path = "{data_path}/cv_{set_name}".format(data_path=data_path, set_name=set_name)
     if not os.path.exists(set_path):
         os.makedirs(set_path)
     wav_scp = open("{set_path}/wav.scp".format(set_path=set_path), "w")
@@ -52,6 +54,29 @@ def format_df(df: pd.DataFrame, data_path: str, set_name: str, commonvoice_root:
         utt2spk.write("{f_id} {f_id}\n".format(f_id=f_id))  # we wont specify spk id here
         spk2utt.write("{f_id} {f_id}\n".format(f_id=f_id))
         text.write("{f_id} {tokenized_sent}\n".format(f_id=f_id, tokenized_sent=tokenized_sent))
+    wav_scp.close()
+    utt2spk.close()
+    spk2utt.close()
+    text.close()
+
+def format_df_pp(df: pd.DataFrame, data_path: str, set_name: str, pp_root: str, subset: int = 0) -> None:
+    """Format ParlamentParla train/dev/test dataframe and store in data root"""
+    df = df[["path", "sentence", "speaker_id"]]
+    if subset:
+        df = df[:subset]
+    set_path = "{data_path}/pp_{set_name}".format(data_path=data_path, set_name=set_name)
+    if not os.path.exists(set_path):
+        os.makedirs(set_path)
+    wav_scp = open("{set_path}/wav.scp".format(set_path=set_path), "w")
+    utt2spk = open("{set_path}/utt2spk".format(set_path=set_path), "w")
+    spk2utt = open("{set_path}/spk2utt".format(set_path=set_path), "w")
+    text = open("{set_path}/text".format(set_path=set_path), "w")
+    for i, (path, sent, s_id) in df.sort_values("path").iterrows():
+        f_id = '_'.join(path.split('_')[1:]).replace('/','_')[:-4]
+        wav_scp.write("{f_id} {pp_root}/{path}\n".format(f_id=f_id, pp_root=pp_root, path=path))
+        utt2spk.write("{f_id} {s_id}\n".format(f_id=f_id, s_id=s_id))  # we wont specify spk id here
+        spk2utt.write("{s_id} {f_id}\n".format(f_id=f_id, s_id=s_id))
+        text.write("{f_id} {sent}\n".format(f_id=f_id, sent=sent))
     wav_scp.close()
     utt2spk.close()
     spk2utt.close()
@@ -134,16 +159,38 @@ def prepare_lexicon_naive(data_path: str) -> None:
     
     
 def main(args: Namespace) -> None:
-    train = pd.read_csv(args.cv_path+"/train.tsv", delimiter="\t")
-    dev = pd.read_csv(args.cv_path+"/dev.tsv", delimiter="\t")
-    test = pd.read_csv(args.cv_path+"/test.tsv", delimiter="\t")
+    if args.cv_path:
+        train = pd.read_csv(args.cv_path+"/train.tsv", delimiter="\t")
+        dev = pd.read_csv(args.cv_path+"/dev.tsv", delimiter="\t")
+        test = pd.read_csv(args.cv_path+"/test.tsv", delimiter="\t")
 
-    format_df(train, args.data_path, "train", args.cv_path, subset=args.subset)
-    format_df(dev, args.data_path, "dev", args.cv_path, subset=args.subset)
-    format_df(test, args.data_path, "test", args.cv_path, subset=args.subset)
+        format_df_cv(train, args.data_path, "train", args.cv_path, subset=args.subset)
+        format_df_cv(dev, args.data_path, "dev", args.cv_path, subset=args.subset)
+        format_df_cv(test, args.data_path, "test", args.cv_path, subset=args.subset)
+
+        print("Commonvoice data prepared in", args.data_path)
+    else:
+        print("WARNING: CV path (--cv-path) not given.")
+
+    if args.pp_path:
+        train = pd.read_csv(args.pp_path+"/clean_train.tsv", delimiter="\t")
+        dev = pd.read_csv(args.pp_path+"/clean_dev.tsv", delimiter="\t")
+        test = pd.read_csv(args.pp_path+"/clean_test.tsv", delimiter="\t")
+
+        format_df_pp(train, args.data_path, "train", args.cv_path, subset=args.subset)
+        format_df_pp(dev, args.data_path, "dev", args.pp_path, subset=args.subset)
+        format_df_pp(test, args.data_path, "test", args.cv_path, subset=args.subset)
+
+        print("ParlamentParla data prepared in", args.data_path)
+    else:
+        print("WARNING: PP path (--pp-path) not given.")
 
     #prepare_lexicon_naive(args.data_path)
-    prepare_lexicon(args.data_path, args.lexicon_path, args.phonemes_path)
+    if args.lexicon_path and args.phonemes_path:
+        prepare_lexicon(args.data_path, args.lexicon_path, args.phonemes_path)
+        print("Lexicon prepared in", args.data_path)
+    else:
+        print("WARNING: Lexicon and phonemes path not given. Not preparing dictionary.")
 
 
 if __name__ == "__main__":
