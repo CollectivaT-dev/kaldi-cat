@@ -165,6 +165,8 @@ if [ $stage -le 8 ]; then
   )&
 fi
 
+wait
+
 # train a chain model
 if [ $stage -le 9 ]; then
   echo ">>9: train a chain model"
@@ -175,4 +177,5 @@ fi
 wait
 
 # print best WERs
-bash RESULT.sh
+echo ">>>RESULTS<<<"
+bash RESULTS.sh
