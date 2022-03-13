@@ -169,3 +169,6 @@ fi
 
 # wait for jobs to finish
 wait
+
+# print best WERs
+bash RESULT.sh
