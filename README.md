@@ -11,11 +11,11 @@ Scripts for training a Kaldi speech recognition engine for Catalan
 - [x] Fake phonetic dictionary
 - [x] Audio data to Kaldi format
 - [x] Proper phonetic dictionary
-- [ ] Test training/evaluation
 - [x] ParlamentParla download scripts
 - [x] PP to Kaldi format
 - [x] Combined train/dev/test1/test2
-- [ ] Test training/evaluation
+- [x] run.sh test training/evaluation
+- [ ] Extend LM corpus
 - [ ] Documentation
 - [ ] Docker test
 - [ ] G2P model
