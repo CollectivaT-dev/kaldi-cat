@@ -28,9 +28,13 @@ cut -f2- -d' ' < $loctmp/utt.txt | sed -e 's:[ ]\+: :g' | sort -u > $loctmp/corp
 rm $loctmp/utt.txt
 
 # If given, add extra cleaned text corpus to the mix
-if [ -z "$textcorpus" ]; then
+if [ ! -z "$textcorpus" ]; then
+	echo Adding $textcorpus to text corpus
 	cat $textcorpus >> $loctmp/corpus.txt
 fi
+
+echo "prepare_lm.sh: Text corpus stats ($loctmp/corpus.txt)"
+wc $loctmp/corpus.txt 
 
 loc=`which ngram-count`;
 if [ -z $loc ]; then
