@@ -1,5 +1,3 @@
-#!/usr/bin/python3.8
-
 import os
 import re
 from argparse import ArgumentParser, Namespace
@@ -9,6 +7,7 @@ import re
 import string
 from unicodedata import normalize
 from typing import List
+from tqdm import tqdm
 
 import pandas as pd
 
@@ -37,7 +36,7 @@ def format_df_cv(df: pd.DataFrame, commonvoice_root: str, sr: int = 16000, subse
     kaldi_columns = ['f_id', 's_id', 'sent', 'wav']
     df_kaldi = pd.DataFrame(columns=kaldi_columns)
 
-    for i, (path, sent, s_id) in df.sort_values("path").iterrows():
+    for i, (path, sent, s_id) in tqdm(df.iterrows(), total=df.shape[0]):
         clean_sent = clean_line(sent)
         #f_id = s_id + '_' + path.replace(".wav", "").replace(".mp3", "")  #Skips spk label 
         f_id = path.replace(".wav", "").replace(".mp3", "")
@@ -55,7 +54,7 @@ def format_df_pp(df: pd.DataFrame, pp_root: str, subset: int = 0) -> pd.DataFram
     kaldi_columns = ['f_id', 's_id', 'sent', 'wav']
     df_kaldi = pd.DataFrame(columns=kaldi_columns)
 
-    for i, (path, sent, s_id) in df.sort_values("path").iterrows():
+    for i, (path, sent, s_id) in tqdm(df.iterrows(), total=df.shape[0]):
         #s_id_formatted = "s" + "%03d"%s_id #Skips spk label
         #f_id = s_id_formatted + '_' + '_'.join(path.split('_')[1:]).replace('/','_')[:-4] #Skips spk label
         f_id = '_'.join(path.split('_')[1:]).replace('/','_')[:-4]
@@ -89,7 +88,7 @@ def df_to_data(df: pd.DataFrame, data_path: str, set_name: str, subset: int = 0)
     spk2utt.close()
     text.close()
 
-    print(set_name, len(df))
+    print(set_name, "written to",  data_path, "size:", len(df))
 
 # normalize apostrophes, some we will keep
 fix_apos = str.maketrans("`‘’", "'''")
@@ -172,8 +171,11 @@ def main(args: Namespace) -> None:
         cv_dev = pd.read_csv(args.cv_path+"/dev.tsv", delimiter="\t")
         cv_test = pd.read_csv(args.cv_path+"/test.tsv", delimiter="\t")
 
+        print("Formatting cv_train")
         cv_train_kaldi = format_df_cv(cv_train, args.cv_path, subset=args.subset)
+        print("Formatting cv_dev")
         cv_dev_kaldi = format_df_cv(cv_dev, args.cv_path, subset=args.subset)
+        print("Formatting cv_test")
         cv_test_kaldi = format_df_cv(cv_test, args.cv_path, subset=args.subset)
 
         df_to_data(cv_train_kaldi, args.data_path, "cv_train")
@@ -189,8 +191,11 @@ def main(args: Namespace) -> None:
         pp_dev = pd.read_csv(args.pp_path+"/clean_dev.tsv", delimiter="\t")
         pp_test = pd.read_csv(args.pp_path+"/clean_test.tsv", delimiter="\t")
 
+        print("Formatting pp_train")
         pp_train_kaldi = format_df_pp(pp_train, args.pp_path, subset=args.subset)
+        print("Formatting pp_dev")
         pp_dev_kaldi = format_df_pp(pp_dev, args.pp_path, subset=args.subset)
+        print("Formatting pp_test")
         pp_test_kaldi = format_df_pp(pp_test, args.pp_path, subset=args.subset)
 
         df_to_data(pp_train_kaldi, args.data_path, "pp_train")
@@ -202,14 +207,12 @@ def main(args: Namespace) -> None:
         print("WARNING: PP path (--pp-path) not given.")
 
     if args.pp_path and args.cv_path:
-
+        print("Merging CV and PP train/dev")
         merged_train_kaldi = pd.concat([cv_train_kaldi, pp_train_kaldi], axis=0)
         merged_dev_kaldi = pd.concat([cv_dev_kaldi, pp_dev_kaldi], axis=0)
 
         df_to_data(merged_train_kaldi, args.data_path, "train")
         df_to_data(merged_dev_kaldi, args.data_path, "dev")
-
-        print("Merged train/dev data prepared in", args.data_path)
 
     #prepare_lexicon_naive(args.data_path)
     if args.lexicon_path and args.phonemes_path:
