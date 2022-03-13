@@ -2,6 +2,7 @@
 
 # Modified from Voxforge
 # by Chompakorn Chaksangchaichot
+# also by Col·lectivaT
 
 . ./path.sh || exit 1;
 
@@ -14,6 +15,7 @@ echo "--- Preparing a corpus from test and train transcripts ..."
 
 # Language model order
 order=3
+textcorpus=''
 
 . utils/parse_options.sh
 
@@ -25,6 +27,10 @@ cat data/train/text data/dev/text > $loctmp/utt.txt
 cut -f2- -d' ' < $loctmp/utt.txt | sed -e 's:[ ]\+: :g' | sort -u > $loctmp/corpus.txt
 rm $loctmp/utt.txt
 
+# If given, add extra cleaned text corpus to the mix
+if [ -z "$textcorpus" ]; then
+	cat $textcorpus >> $loctmp/corpus.txt
+fi
 
 loc=`which ngram-count`;
 if [ -z $loc ]; then
