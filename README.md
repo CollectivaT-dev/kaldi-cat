@@ -15,7 +15,9 @@ Scripts for training a Kaldi speech recognition engine for Catalan
 - [x] PP to Kaldi format
 - [x] Combined train/dev/test1/test2
 - [x] run.sh test training/evaluation
-- [ ] Extend LM corpus
+- [x] Extend LM corpus
+- [ ] G2P model
+- [ ] Extend phonetic dictionary
 - [ ] Documentation
 - [ ] Docker test
-- [ ] G2P model
+
