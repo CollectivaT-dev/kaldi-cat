@@ -113,10 +113,9 @@ def clean_line(textin):
     line = re.sub(clean_apos, r"\1 \2", line)
     line = re.sub(squash_space, r" ", line)
     line = line.strip(' ')
-    # normalize unicode characters to remove accents etc.
     line = line.translate(clean_chars)
-    line = normalize('NFD', line).encode('UTF-8', 'ignore')
-    line = line.decode('UTF-8')
+    # line = normalize('NFD', line).encode('UTF-8', 'ignore')
+    # line = line.decode('UTF-8')
     line = line.lower()
 
     return line
