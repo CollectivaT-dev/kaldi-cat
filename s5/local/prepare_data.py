@@ -95,10 +95,12 @@ fix_apos = str.maketrans("`‘’", "'''")
 # anything else we convert to space, and will squash multiples later
 # this will catch things like hyphens where we don't want to concatenate words
 all_but_apos = "".join(i for i in string.punctuation if i != "'")
-all_but_apos += "–—“”"
+all_but_apos += "–—“”»«…°¿¡―ὑℤ ःং ঃ ং"
 clean_punc = str.maketrans(all_but_apos, (" " * len(all_but_apos)))
 # keep only apostrophes between word chars => abbreviations
 clean_apos = re.compile(r"(\W)'(\W)|'(\W)|(\W)'|^'|'$")
+# keep only dashes between word chars => abbreviations
+clean_dash = re.compile(r"(\W)-(\W)|-(\W)|(\W)-|^-|-$")
 squash_space = re.compile(r"\s{2,}")
 # chars not handled by unicodedata.normalize because not compositions
 bad_chars = {'Æ': 'AE', 'Ð': 'D', 'Ø': 'O', 'Þ': 'TH', 'Œ': 'OE',
@@ -111,11 +113,10 @@ def clean_line(textin):
     line = line.translate(fix_apos)
     line = line.translate(clean_punc)
     line = re.sub(clean_apos, r"\1 \2", line)
+    line = re.sub(clean_dash, r"\1 \2", line)
     line = re.sub(squash_space, r" ", line)
     line = line.strip(' ')
     line = line.translate(clean_chars)
-    # line = normalize('NFD', line).encode('UTF-8', 'ignore')
-    # line = line.decode('UTF-8')
     line = line.lower()
 
     return line
