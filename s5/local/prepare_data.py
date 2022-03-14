@@ -8,11 +8,7 @@ import string
 from unicodedata import normalize
 from typing import List
 from tqdm import tqdm
-
 import pandas as pd
-
-from pythainlp.tokenize import newmm
-
 
 def run_parser() -> Namespace:
     """Run argument parser"""
