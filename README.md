@@ -2,7 +2,7 @@
 
 Scripts download and prepare datasets using the two largest speech corpora for Catalan: [Common Voice v8.0](https://commonvoice.mozilla.org/en/datasets) and [ParlamentParla](https://zenodo.org/record/5541827). Training scripts are based on [official `commonvoice` recipe](https://github.com/kaldi-asr/kaldi/tree/master/egs/commonvoice/s5). A phonetic dictionary derived from [Alpha Cepei's VOSK model](https://alphacephei.com/vosk/models) is provided in `dict/ca` directory. Text corpus to train the language model is derived from the training and development text plus an additional clean text corpus derived from OpenSubtitles (`corpus/CA_OpenSubtitles_clean.txt`). Evaluation is performed on test sets of both corpora. 
 
-# Manual installation (Linux)
+## Manual installation (Linux)
 
 You need to first install Kaldi and SRILM. We provide the instructions, however you should make sure to follow the official guidelines in [Kaldi repository](https://github.com/kaldi-asr/kaldi):
 
@@ -38,7 +38,7 @@ Finally, make sure you also have Python 3 and installed the required modules:
 pip install tqdm pandas
 ```
 
-# Docker installation (not tested yet)
+## Docker installation (not tested yet)
 
 We provide a docker setup that takes care of all instalations. 
 
@@ -51,20 +51,20 @@ docker build -t kaldidock kaldi
 Once the image had been built, all you have to do is interactively attach to its bash terminal via the following command:
 
 ```
-$ docker run -it -v <path-to-repo>:/opt/kaldi/egs/kaldi-cat \
-                 -v <path-to-cv-corpus>:/mnt \
+docker run -it -v <path-to-repo>:/opt/kaldi/egs/kaldi-cat \
+                 -v <path-to-corpus-base>:/mnt \
                  --gpus all --name <container-name> <built-docker-name> bash
 ```
 
 Once you finish this step, you should be in a docker container's bash terminal now to start the training.
 
 
-# Training
+## Training
 
 All training scripts are inside `s5` directory: 
 
 ```
-cd s5
+cd <kaldi-dir>/egs/kaldi-cat/s5
 ```
 
 If you're using GPU (and you should), make sure to flag them:
@@ -76,16 +76,16 @@ export CUDA_VISIBLE_DEVICES=0,1
 To start training, all you need to do is call `run.sh` specifying a directory where to download the corpora: 
 
 ```
-bash run.sh --corpora_base_path <corpus-dir>  #if running from docker <corpus-dir>=/mnt
+bash run.sh --corpusbase <corpus-base-directory>  #if running from docker <corpus-dir> is "/mnt"
 ``` 
 
 To train toy models to see if all the process works smoothly, you can use the `subset` option. This will prepare a training dataset using only a specified number of samples:
 
 ```
-bash run.sh --corpora_base_path <corpus-dir> --subset 1000
+bash run.sh --corpusbase <corpus-base-directory> --subset 1000
 ```
 
-# Results
+## Results
 
 Evaluations are done on separately on testing portions of the two corpora. `run.sh` will print out WER scores at the end. 
 

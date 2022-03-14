@@ -7,14 +7,7 @@
 . ./cmd.sh || exit 1;
 
 # default paths
-#docker (needs edit)
-#cv_path="/mnt/cv-corpus-7.0-2021-07-21"
-#labels_path="/mnt/labels"
-
-#local
-corpora_base_path="/home/$USER/LargeDrive/corpora"
-cv_base_path="$corpora_base_path/commonvoice"
-pp_base_path="$corpora_base_path/PP"
+corpusbase="/home/$USER/LargeDrive/corpora"
 
 phonemes="../dict/ca/phonemes.txt"
 lexicon="../dict/ca/lexicon.txt"
@@ -32,6 +25,8 @@ subset=0
 
 . ./utils/parse_options.sh || exit 1;
 
+cv_base_path="$corpusbase/commonvoice"
+pp_base_path="$corpusbase/PP"
 cv_path=$cv_base_path/$lang
 
 if [ $stage -le 0 ]; then
