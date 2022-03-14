@@ -38,7 +38,7 @@ Finally, make sure you also have Python 3 and installed the required modules:
 pip install tqdm pandas
 ```
 
-## Docker installation (not tested yet)
+## Docker installation
 
 We provide a docker setup that takes care of all instalations. 
 
@@ -52,7 +52,7 @@ Once the image had been built, all you have to do is interactively attach to its
 
 ```
 docker run -it -v <path-to-repo>:/opt/kaldi/egs/kaldi-cat \
-                 -v <path-to-corpus-base>:/mnt \
+                 -v <path-to-corpus-base-directory>:/mnt \
                  --gpus all --name <container-name> <built-docker-name> bash
 ```
 
@@ -76,7 +76,7 @@ export CUDA_VISIBLE_DEVICES=0,1
 To start training, all you need to do is call `run.sh` specifying a directory where to download the corpora: 
 
 ```
-bash run.sh --corpusbase <corpus-base-directory>  #if running from docker <corpus-dir> is "/mnt"
+bash run.sh --corpusbase <corpus-base-directory>  #if running from docker <corpus-base-directory> is "/mnt"
 ``` 
 
 To train toy models to see if all the process works smoothly, you can use the `subset` option. This will prepare a training dataset using only a specified number of samples:
@@ -109,7 +109,7 @@ To be published soon...
 - [x] run.sh test training/evaluation
 - [x] Extend LM corpus
 - [x] G2P model
-- [ ] Extend phonetic dictionary?
 - [x] Documentation
-- [ ] Docker test
+- [x] Docker test
+- [ ] Extend phonetic dictionary?
 
