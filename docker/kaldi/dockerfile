@@ -43,7 +43,6 @@ RUN apt update
 RUN apt install -y libsox-fmt-mp3 gawk
 
 # install SRILM
-COPY srilm.tar.gz /opt/kaldi/tools
 WORKDIR /opt/kaldi/tools
 RUN ./install_srilm.sh alp alp alp@alp.com
 
