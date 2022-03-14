@@ -9,3 +9,5 @@ s5/mfcc/*
 s5/run.log
 exp
 exp/*
+docker/srilm.tar.gz
+docker/kaldi/srilm.tar.gz
