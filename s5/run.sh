@@ -41,8 +41,8 @@ fi
 
 if [ $stage -le 1 ]; then
   echo ">> 1: prepare datasets"
-  echo "python local/prepare_data.py --data-path $data_path --cv-path $cv_path --pp-path $pp_base_path --phonemes-path $phonemes --lexicon-path $lexicon --subset $subset"
-  python local/prepare_data.py --data-path $data_path --cv-path $cv_path --pp-path $pp_base_path --phonemes-path $phonemes --lexicon-path $lexicon  --subset $subset || { echo "Fail running local/prepare_cv.py"; exit 1; }
+  echo "local/prepare_data.py --data-path $data_path --cv-path $cv_path --pp-path $pp_base_path --phonemes-path $phonemes --lexicon-path $lexicon --subset $subset"
+  local/prepare_data.py --data-path $data_path --cv-path $cv_path --pp-path $pp_base_path --phonemes-path $phonemes --lexicon-path $lexicon  --subset $subset || { echo "Fail running local/prepare_cv.py"; exit 1; }
 fi
 
 if [ $stage -le 2 ]; then
