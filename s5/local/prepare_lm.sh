@@ -24,14 +24,19 @@ textcorpus=''
 # experiment results from official which fused both train / dev
 mkdir -p $loctmp
 cat data/train/text data/dev/text > $loctmp/utt.txt
-cut -f2- -d' ' < $loctmp/utt.txt | sed -e 's:[ ]\+: :g' | sort -u > $loctmp/corpus.txt
+#cut -f2- -d' ' < $loctmp/utt.txt | sed -e 's:[ ]\+: :g' | sort -u > $loctmp/corpus.txt
+cut -f2- -d' ' < $loctmp/utt.txt | sed -e 's:[ ]\+: :g' > $loctmp/traindev.txt
 rm $loctmp/utt.txt
 
 # If given, add extra cleaned text corpus to the mix
 if [ ! -z "$textcorpus" ]; then
 	echo Adding $textcorpus to text corpus
-	cat $textcorpus >> $loctmp/corpus.txt
+	cat $textcorpus >> $loctmp/traindev.txt
 fi
+
+#Sort corpus
+sort -u $loctmp/traindev.txt > $loctmp/corpus.txt
+rm $loctmp/traindev.txt
 
 echo "prepare_lm.sh: Text corpus stats ($loctmp/corpus.txt)"
 wc $loctmp/corpus.txt 
