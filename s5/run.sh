@@ -7,14 +7,7 @@
 . ./cmd.sh || exit 1;
 
 # default paths
-#docker (needs edit)
-#cv_path="/mnt/cv-corpus-7.0-2021-07-21"
-#labels_path="/mnt/labels"
-
-#local
-corpora_base_path="/home/$USER/LargeDrive/corpora"
-cv_base_path="$corpora_base_path/commonvoice"
-pp_base_path="$corpora_base_path/PP"
+corpusbase="/home/$USER/LargeDrive/corpora"
 
 phonemes="../dict/ca/phonemes.txt"
 lexicon="../dict/ca/lexicon.txt"
@@ -32,6 +25,8 @@ subset=0
 
 . ./utils/parse_options.sh || exit 1;
 
+cv_base_path="$corpusbase/commonvoice"
+pp_base_path="$corpusbase/PP"
 cv_path=$cv_base_path/$lang
 
 if [ $stage -le 0 ]; then
@@ -46,8 +41,8 @@ fi
 
 if [ $stage -le 1 ]; then
   echo ">> 1: prepare datasets"
-  echo "python local/prepare_data.py --data-path $data_path --cv-path $cv_path --pp-path $pp_base_path --phonemes-path $phonemes --lexicon-path $lexicon --subset $subset"
-  python local/prepare_data.py --data-path $data_path --cv-path $cv_path --pp-path $pp_base_path --phonemes-path $phonemes --lexicon-path $lexicon  --subset $subset || { echo "Fail running local/prepare_cv.py"; exit 1; }
+  echo "local/prepare_data.py --data-path $data_path --cv-path $cv_path --pp-path $pp_base_path --phonemes-path $phonemes --lexicon-path $lexicon --subset $subset"
+  local/prepare_data.py --data-path $data_path --cv-path $cv_path --pp-path $pp_base_path --phonemes-path $phonemes --lexicon-path $lexicon  --subset $subset || { echo "Fail running local/prepare_cv.py"; exit 1; }
 fi
 
 if [ $stage -le 2 ]; then
