@@ -14,7 +14,7 @@ mkdir -p $tmpdir
 
 echo "--- Preparing the grammar transducer (G.fst) ..."
 cat $lmdir/lm.arpa |\
-	    arpa2fst --disambig-symbol=#0 \
+	    arpa2fst --disambig-symbol=#0 --max-arpa-warnings=-1\
 	                 --read-symbol-table=$langdir/words.txt - $langdir/G.fst
 fstisstochastic $langdir/G.fst
 # The output is like:
