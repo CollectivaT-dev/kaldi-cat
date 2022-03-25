@@ -24,7 +24,7 @@ def run_parser() -> Namespace:
     return parser.parse_args()
 
 
-def format_df_cv(df: pd.DataFrame, commonvoice_root: str, sr: int = 16000, subset: int = 0) -> pd.DataFrame:
+def format_df_cv(df: pd.DataFrame, commonvoice_root: str, sr: int = 16000, subset: int = 0, wordset = set()) -> pd.DataFrame:
     """Format CommonVoice train/dev/test dataframe and store in data root"""
     df = df[["path", "sentence", "client_id"]]
     if subset:
@@ -39,11 +39,12 @@ def format_df_cv(df: pd.DataFrame, commonvoice_root: str, sr: int = 16000, subse
         f_id = path.replace(".wav", "").replace(".mp3", "")
         wav = "sox {commonvoice_root}/clips/{path} -t wav -r {sr} -c 1 -b 16 - |".format(commonvoice_root=commonvoice_root, path=path, sr=sr)
         df_kaldi.loc[i] = [f_id, f_id, clean_sent, wav]
+        wordset.update(clean_sent.split())
 
     return df_kaldi
 
 
-def format_df_pp(df: pd.DataFrame, pp_root: str, subset: int = 0) -> pd.DataFrame:
+def format_df_pp(df: pd.DataFrame, pp_root: str, subset: int = 0, wordset = set()) -> pd.DataFrame:
     df = df[["path", "sentence", "speaker_id"]]
     if subset:
         df = df[:subset]
@@ -57,6 +58,7 @@ def format_df_pp(df: pd.DataFrame, pp_root: str, subset: int = 0) -> pd.DataFram
         f_id = '_'.join(path.split('_')[1:]).replace('/','_')[:-4]
         wav = "{pp_root}/{path}".format(pp_root=pp_root, path=path)
         df_kaldi.loc[i] = [f_id, f_id, sent, wav]
+        wordset.update(sent.split())
 
     return df_kaldi
 
@@ -127,6 +129,7 @@ def prepare_lexicon(data_path: str, source_lexicon_path: str, source_phones_path
     # words = sorted(set([w for sent in train_data for w in sent.split(" ")]))
     
     lexicon = ["!SIL sil\n", "<UNK> spn\n"] + [line for line in open(source_lexicon_path, 'r').readlines()]
+    lexicon_words = [line.split()[0] for line in open(source_lexicon_path, 'r').readlines()]
     nonsilence_phones = [g+"\n" for g in sorted(set([char[:-1] for char in open(source_phones_path, 'r').readlines()]))]
     optional_silence = ["sil\n"]
     silence_phones = ["sil\n", "spn\n"]
@@ -139,7 +142,11 @@ def prepare_lexicon(data_path: str, source_lexicon_path: str, source_phones_path
     open("{data_path}/local/lang/optional_silence.txt".format(data_path=data_path), "w").writelines(optional_silence)
     open("{data_path}/local/lang/silence_phones.txt".format(data_path=data_path), "w").writelines(silence_phones)
     open("{data_path}/local/lang/extra_questions.txt".format(data_path=data_path), "w").writelines([])
+
+    return lexicon_words
     
+def check_unknown_words(df, words_list):
+    return []
 
 def prepare_lexicon_naive(data_path: str) -> None:
     """Prepare data/local/lang directory"""
@@ -163,17 +170,26 @@ def prepare_lexicon_naive(data_path: str) -> None:
     
     
 def main(args: Namespace) -> None:
+    all_words = set()
+
+    #prepare_lexicon_naive(args.data_path)
+    if args.lexicon_path and args.phonemes_path:
+        lexicon_words = prepare_lexicon(args.data_path, args.lexicon_path, args.phonemes_path)
+        print("Lexicon prepared in", args.data_path)
+    else:
+        print("WARNING: Lexicon and phonemes path not given. Not preparing dictionary.")
+
     if args.cv_path:
         cv_train = pd.read_csv(args.cv_path+"/train.tsv", delimiter="\t")
         cv_dev = pd.read_csv(args.cv_path+"/dev.tsv", delimiter="\t")
         cv_test = pd.read_csv(args.cv_path+"/test.tsv", delimiter="\t")
 
         print("Formatting cv_train")
-        cv_train_kaldi = format_df_cv(cv_train, args.cv_path, subset=args.subset)
+        cv_train_kaldi = format_df_cv(cv_train, args.cv_path, subset=args.subset, wordset=all_words)
         print("Formatting cv_dev")
-        cv_dev_kaldi = format_df_cv(cv_dev, args.cv_path, subset=args.subset)
+        cv_dev_kaldi = format_df_cv(cv_dev, args.cv_path, subset=args.subset, wordset=all_words)
         print("Formatting cv_test")
-        cv_test_kaldi = format_df_cv(cv_test, args.cv_path, subset=args.subset)
+        cv_test_kaldi = format_df_cv(cv_test, args.cv_path, subset=args.subset, wordset=all_words)
 
         df_to_data(cv_train_kaldi, args.data_path, "cv_train")
         df_to_data(cv_dev_kaldi, args.data_path, "cv_dev")
@@ -189,11 +205,11 @@ def main(args: Namespace) -> None:
         pp_test = pd.read_csv(args.pp_path+"/clean_test.tsv", delimiter="\t")
 
         print("Formatting pp_train")
-        pp_train_kaldi = format_df_pp(pp_train, args.pp_path, subset=args.subset)
+        pp_train_kaldi = format_df_pp(pp_train, args.pp_path, subset=args.subset, wordset=all_words)
         print("Formatting pp_dev")
-        pp_dev_kaldi = format_df_pp(pp_dev, args.pp_path, subset=args.subset)
+        pp_dev_kaldi = format_df_pp(pp_dev, args.pp_path, subset=args.subset, wordset=all_words)
         print("Formatting pp_test")
-        pp_test_kaldi = format_df_pp(pp_test, args.pp_path, subset=args.subset)
+        pp_test_kaldi = format_df_pp(pp_test, args.pp_path, subset=args.subset, wordset=all_words)
 
         df_to_data(pp_train_kaldi, args.data_path, "pp_train")
         df_to_data(pp_dev_kaldi, args.data_path, "pp_dev")
@@ -211,14 +227,17 @@ def main(args: Namespace) -> None:
         df_to_data(merged_train_kaldi, args.data_path, "train")
         df_to_data(merged_dev_kaldi, args.data_path, "dev")
 
-    #prepare_lexicon_naive(args.data_path)
-    if args.lexicon_path and args.phonemes_path:
-        prepare_lexicon(args.data_path, args.lexicon_path, args.phonemes_path)
-        print("Lexicon prepared in", args.data_path)
-    else:
-        print("WARNING: Lexicon and phonemes path not given. Not preparing dictionary.")
+    if args.lexicon_path:
+        unknown = all_words.difference(lexicon_words)
+        unknown_words_path = os.path.join(args.data_path, "unknown_words.txt")
+        
+        with open(unknown_words_path, 'w') as f:
+            for w in unknown:
+                f.write(w+"\n")
 
+        print("%i unknown words written to %s"%(len(unknown), unknown_words_path))
 
+    
 if __name__ == "__main__":
     args = run_parser()
     main(args)
