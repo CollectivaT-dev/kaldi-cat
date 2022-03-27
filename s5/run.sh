@@ -11,7 +11,7 @@ corpusbase="/home/$USER/LargeDrive/corpora"
 
 phonemes="../dict/ca/phonemes.txt"
 lexicon="../dict/ca/lexicon.txt"
-lexicon2="../dict/ca/lexicon_unk_words.txt"
+lexicon2="../dict/ca/lexicon_unk_words_traindev.txt"
 textcorpus="../corpus/CA_OpenSubtitles_clean.txt" #This will be added on top of train/dev text to build LM text corpus
 
 data_path="data"
