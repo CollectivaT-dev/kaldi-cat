@@ -18,7 +18,7 @@ def run_parser() -> Namespace:
     parser.add_argument("--data-path", type=str, required=True, help="Path to data root")
     parser.add_argument("--cv-path", type=str, required=False, help="Path to commonvoice corpus")
     parser.add_argument("--pp-path", type=str, required=False, help="Path to ParlamentParla corpus")
-    parser.add_argument("--lexicon-path", type=str, required=False, help="Path to prepared lexicon")
+    parser.add_argument("--lexicon-path", type=str, action='append', required=False, help="Path to prepared lexicon(s)")
     parser.add_argument("--phonemes-path", type=str, required=False, help="Path to prepared phoneme set")
     parser.add_argument("--subset", type=int, required=False, default=0, help="Subset sets to size")
     return parser.parse_args()
@@ -120,16 +120,22 @@ def clean_line(textin):
 
     return line
 
-def prepare_lexicon(data_path: str, source_lexicon_path: str, source_phones_path: str) -> None:
+def prepare_lexicon(data_path: str, source_lexicon_paths: str, source_phones_path: str) -> None:
     """Prepare data/local/lang directory"""
 
     #TODO: Check if training data has words that are not in dictionary. 
     # with open("{data_path}/train/text".format(data_path=data_path), "r") as f:
     #     train_data = [" ".join(line.split(" ")[1:]).strip() for line in f.readlines()]
     # words = sorted(set([w for sent in train_data for w in sent.split(" ")]))
-    
-    lexicon = ["!SIL sil\n", "<UNK> spn\n"] + [line for line in open(source_lexicon_path, 'r').readlines()]
-    lexicon_words = [line.split()[0] for line in open(source_lexicon_path, 'r').readlines()]
+
+    lexicon = []
+    for path in source_lexicon_paths:
+        lexicon += [line for line in open(path, 'r').readlines()]
+    lexicon = list(set(lexicon)) #keep unique
+    lexicon.sort() 
+    lexicon_words = [l.split()[0] for l in lexicon]
+    lexicon = ["!SIL sil\n", "<UNK> spn\n"] + lexicon
+
     nonsilence_phones = [g+"\n" for g in sorted(set([char[:-1] for char in open(source_phones_path, 'r').readlines()]))]
     optional_silence = ["sil\n"]
     silence_phones = ["sil\n", "spn\n"]
@@ -175,7 +181,7 @@ def main(args: Namespace) -> None:
     #prepare_lexicon_naive(args.data_path)
     if args.lexicon_path and args.phonemes_path:
         lexicon_words = prepare_lexicon(args.data_path, args.lexicon_path, args.phonemes_path)
-        print("Lexicon prepared in", args.data_path)
+        print("Lexicon with %i entries prepared in"%len(lexicon_words), args.data_path)
     else:
         print("WARNING: Lexicon and phonemes path not given. Not preparing dictionary.")
 
@@ -227,7 +233,7 @@ def main(args: Namespace) -> None:
         df_to_data(merged_train_kaldi, args.data_path, "train")
         df_to_data(merged_dev_kaldi, args.data_path, "dev")
 
-    if args.lexicon_path:
+    if args.lexicon_path and args.phonemes_path:
         unknown = all_words.difference(lexicon_words)
         unknown_words_path = os.path.join(args.data_path, "unknown_words.txt")
         
