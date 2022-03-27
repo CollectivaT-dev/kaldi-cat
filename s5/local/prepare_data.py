@@ -1,4 +1,3 @@
-
 import os
 import re
 from argparse import ArgumentParser, Namespace
@@ -195,7 +194,7 @@ def main(args: Namespace) -> None:
         print("Formatting cv_dev")
         cv_dev_kaldi = format_df_cv(cv_dev, args.cv_path, subset=args.subset, wordset=all_words)
         print("Formatting cv_test")
-        cv_test_kaldi = format_df_cv(cv_test, args.cv_path, subset=args.subset, wordset=all_words)
+        cv_test_kaldi = format_df_cv(cv_test, args.cv_path, subset=args.subset)
 
         df_to_data(cv_train_kaldi, args.data_path, "cv_train")
         df_to_data(cv_dev_kaldi, args.data_path, "cv_dev")
@@ -215,7 +214,7 @@ def main(args: Namespace) -> None:
         print("Formatting pp_dev")
         pp_dev_kaldi = format_df_pp(pp_dev, args.pp_path, subset=args.subset, wordset=all_words)
         print("Formatting pp_test")
-        pp_test_kaldi = format_df_pp(pp_test, args.pp_path, subset=args.subset, wordset=all_words)
+        pp_test_kaldi = format_df_pp(pp_test, args.pp_path, subset=args.subset)
 
         df_to_data(pp_train_kaldi, args.data_path, "pp_train")
         df_to_data(pp_dev_kaldi, args.data_path, "pp_dev")
