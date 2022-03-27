@@ -19,24 +19,22 @@ textcorpus=''
 
 . utils/parse_options.sh
 
-# Prepare a LM from both train / dev corpus
-# This is cheating but we are trying to reproduce the 
-# experiment results from official which fused both train / dev
+# Prepare a LM from train corpus
 mkdir -p $loctmp
-cat data/train/text data/dev/text > $loctmp/utt.txt
-#cut -f2- -d' ' < $loctmp/utt.txt | sed -e 's:[ ]\+: :g' | sort -u > $loctmp/corpus.txt
-cut -f2- -d' ' < $loctmp/utt.txt | sed -e 's:[ ]\+: :g' > $loctmp/traindev.txt
-rm $loctmp/utt.txt
+# cat data/train/text data/dev/text > $loctmp/utt.txt
+# cut -f2- -d' ' < $loctmp/utt.txt | sed -e 's:[ ]\+: :g' > $loctmp/traindev.txt
+cut -f2- -d' ' < data/train/text | sed -e 's:[ ]\+: :g' > $loctmp/train.txt
+# rm $loctmp/utt.txt
 
 # If given, add extra cleaned text corpus to the mix
 if [ ! -z "$textcorpus" ]; then
 	echo Adding $textcorpus to text corpus
-	cat $textcorpus >> $loctmp/traindev.txt
+	cat $textcorpus >> $loctmp/train.txt
 fi
 
 #Sort corpus
-sort -u $loctmp/traindev.txt > $loctmp/corpus.txt
-rm $loctmp/traindev.txt
+sort -u $loctmp/train.txt > $loctmp/corpus.txt
+rm $loctmp/train.txt
 
 echo "prepare_lm.sh: Text corpus stats ($loctmp/corpus.txt)"
 wc $loctmp/corpus.txt 

@@ -44,11 +44,16 @@ if [ $stage -le 1 ]; then
   echo ">> 1: prepare datasets"
   echo "python local/prepare_data.py --data-path $data_path --cv-path $cv_path --pp-path $pp_base_path --phonemes-path $phonemes --lexicon-path $lexicon --lexicon-path $lexicon2 --subset $subset"
   python local/prepare_data.py --data-path $data_path --cv-path $cv_path --pp-path $pp_base_path --phonemes-path $phonemes --lexicon-path $lexicon --lexicon-path $lexicon2 --subset $subset || { echo "Fail running local/prepare_data.py"; exit 1; }
+
+  #create subsets for viterbi training
+  utils/subset_data_dir.sh --speakers data/train 10000 data/train_10k
+  utils/subset_data_dir.sh --speakers data/train 50000 data/train_50k
+  utils/subset_data_dir.sh --speakers data/train 150000 data/train_150k
 fi
 
 if [ $stage -le 2 ]; then
   echo ">> 2a: validate prepared data"
-  for part in train dev cv_test pp_test; do
+  for part in train train_10k train_50k train_150k dev cv_test pp_test; do
     utils/validate_data_dir.sh --no-feats data/$part || { echo "Fail validating $part"; exit 1; }
   done
 
@@ -61,17 +66,17 @@ fi
 
 if [ $stage -le 3 ]; then
   echo ">> 3: create MFCC feats (make_mfcc_pitch)"
-  for part in train dev pp_test cv_test; do
+  for part in train train_10k train_50k train_150k dev cv_test pp_test; do
     steps/make_mfcc_pitch.sh --cmd "$train_cmd" --nj $njobs data/$part exp/make_mfcc/$part $mfccdir || { echo "Error make MFCC features"; exit 1; }
     steps/compute_cmvn_stats.sh data/$part exp/make_mfcc/$part $mfccdir || { echo "Error computing CMVN"; exit 1; }
   done
 fi
 
-# train monophone
+# mono: train monophone with 10k subset
 if [ $stage -le 4 ]; then
   echo ">> 4: train monophone"
   steps/train_mono.sh --boost-silence 1.25 --nj $njobs --cmd "$train_cmd" \
-    data/train data/lang exp/mono || { echo "Error training mono"; exit 1; };
+    data/train_10k data/lang exp/mono || { echo "Error training mono"; exit 1; };
   (
     utils/mkgraph.sh data/lang exp/mono exp/mono/graph || { echo "Error making graph for mono"; exit 1; }
     for testset in dev; do
@@ -80,14 +85,14 @@ if [ $stage -le 4 ]; then
     done
   )&
   steps/align_si.sh --boost-silence 1.25 --nj $njobs --cmd "$train_cmd" \
-    data/train data/lang exp/mono exp/mono_ali_train || { echo "Error aligning mono"; exit 1; }
+    data/train data/lang exp/mono exp/mono_ali || { echo "Error aligning mono"; exit 1; }
 fi
 
-# train delta + delta-delta triphone
+# tri1: train delta + delta-delta triphone with 50k subset
 if [ $stage -le 5 ]; then
   echo ">>5: train delta + delta-delta triphone"
   steps/train_deltas.sh --boost-silence 1.25 --cmd "$train_cmd" \
-    2000 10000 data/train data/lang exp/mono_ali_train exp/tri1 || { echo "Error training delta tri1"; exit 1; }
+    2500 15000 data/train_50k data/lang exp/mono_ali exp/tri1 || { echo "Error training delta tri1"; exit 1; }
 
   # decode tri1
   (
@@ -98,16 +103,16 @@ if [ $stage -le 5 ]; then
     done
   )&
 
-  steps/align_si.sh --nj $njobs --cmd "$train_cmd" \
-    data/train data/lang exp/tri1 exp/tri1_ali_train || { echo "Error aligning tri1"; exit 1; }
+  steps/align_si.sh --boost-silence 1.25 --nj $njobs --cmd "$train_cmd" \
+    data/train data/lang exp/tri1 exp/tri1_ali || { echo "Error aligning tri1"; exit 1; }
 fi
 
-# LDA+MLLT
+# tri2: train LDA+MLLT with 150k subset
 if [ $stage -le 6 ]; then
   echo ">>6a: train LDA+MLLT"
-  steps/train_lda_mllt.sh --cmd "$train_cmd" \
-    --splice-opts "--left-context=3 --right-context=3" 2500 15000 \
-      data/train data/lang exp/tri1_ali_train exp/tri2b || { echo "Error training tri2b (LDA+MLLT)"; exit 1; }
+  steps/train_lda_mllt.sh --boost-silence 1.25 --cmd "$train_cmd" \
+    --splice-opts "--left-context=3 --right-context=3" 3500 20000 \
+      data/train_150k data/lang exp/tri1_ali exp/tri2b || { echo "Error training tri2b (LDA+MLLT)"; exit 1; }
 
   echo ">>6b: decode LDA+MLTT"
   utils/mkgraph.sh data/lang exp/tri2b exp/tri2b/graph || { echo "Error making graph for tri2b"; exit 1; }
@@ -119,15 +124,15 @@ if [ $stage -le 6 ]; then
   )&
 
   echo ">>6c: align using tri2b"
-  steps/align_si.sh --nj $njobs --cmd "$train_cmd" --use-graphs true \
-    data/train data/lang exp/tri2b exp/tri2b_ali_train || { echo "Error aligning tri2b"; exit 1; }
+  steps/align_si.sh --boost-silence 1.25 --nj $njobs --cmd "$train_cmd" --use-graphs true \
+    data/train data/lang exp/tri2b exp/tri2b_ali || { echo "Error aligning tri2b"; exit 1; }
 fi
 
-# tri3b, LDA+MLLT+SAT
+# tri3: train LDA+MLLT+SAT with all set
 if [ $stage -le 7 ]; then
   echo ">>7a: train LDA+MLLT"
-  steps/train_sat.sh --cmd "$train_cmd" 2500 15000 \
-    data/train data/lang exp/tri2b_ali_train exp/tri3b || { echo "Error training tri3b (LDA+MLLT+SAT)"; exit 1; }
+  steps/train_sat.sh --boost-silence 1.25 --cmd "$train_cmd" 4000 20000 \
+    data/train data/lang exp/tri2b_ali exp/tri3b || { echo "Error training tri3b (LDA+MLLT+SAT)"; exit 1; }
 
   echo ">>7b: decode using the tri3b model"
   (
@@ -139,16 +144,17 @@ if [ $stage -le 7 ]; then
   )&
 fi
 
+# tri4
 if [ $stage -le 8 ]; then
   echo ">>8a: align utts in the full training set using the tri3b model"
-  steps/align_fmllr.sh --nj $njobs --cmd "$train_cmd" \
+  steps/align_fmllr.sh --boost-silence 1.25 --nj $njobs --cmd "$train_cmd" \
     data/train data/lang \
-    exp/tri3b exp/tri3b_ali_train || { echo "Error aligning FMLLR for tri4b"; exit 1; }
+    exp/tri3b exp/tri3b_ali || { echo "Error aligning FMLLR for tri4b"; exit 1; }
 
   echo ">>8b: train another LDA+MLLT+SAT system on the entire training set"
-  steps/train_sat.sh  --cmd "$train_cmd" 4200 40000 \
+  steps/train_sat.sh --boost-silence 1.25 --cmd "$train_cmd" 5000 40000 \
     data/train data/lang \
-    exp/tri3b_ali_train exp/tri4b || { echo "Error training tri4b"; exit 1; }
+    exp/tri3b_ali exp/tri4b || { echo "Error training tri4b"; exit 1; }
 
   echo ">>8c: decode using the tri4b model"
   (
