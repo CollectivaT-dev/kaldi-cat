@@ -18,12 +18,13 @@ def run_parser() -> Namespace:
     parser.add_argument("--cv-path", type=str, required=False, help="Path to commonvoice corpus")
     parser.add_argument("--pp-path", type=str, required=False, help="Path to ParlamentParla corpus")
     parser.add_argument("--lexicon-path", type=str, action='append', required=False, help="Path to prepared lexicon(s)")
+    parser.add_argument("--check-vocab", type=bool, required=False, default=False, help="Check if training and dev sets contain words outside lexicon")
     parser.add_argument("--phonemes-path", type=str, required=False, help="Path to prepared phoneme set")
     parser.add_argument("--subset", type=int, required=False, default=0, help="Subset sets to size")
     return parser.parse_args()
 
 
-def format_df_cv(df: pd.DataFrame, commonvoice_root: str, sr: int = 16000, subset: int = 0, wordset = set()) -> pd.DataFrame:
+def format_df_cv(df: pd.DataFrame, commonvoice_root: str, sr: int = 16000, subset: int = 0, wordset = set(), update_wordset:bool = False) -> pd.DataFrame:
     """Format CommonVoice train/dev/test dataframe and store in data root"""
     df = df[["path", "sentence", "client_id"]]
     if subset:
@@ -38,12 +39,13 @@ def format_df_cv(df: pd.DataFrame, commonvoice_root: str, sr: int = 16000, subse
         f_id = path.replace(".wav", "").replace(".mp3", "")
         wav = "sox {commonvoice_root}/clips/{path} -t wav -r {sr} -c 1 -b 16 - |".format(commonvoice_root=commonvoice_root, path=path, sr=sr)
         df_kaldi.loc[i] = [f_id, f_id, clean_sent, wav]
-        wordset.update(clean_sent.split())
+        if update_wordset:
+            wordset.update(clean_sent.split())
 
     return df_kaldi
 
 
-def format_df_pp(df: pd.DataFrame, pp_root: str, subset: int = 0, wordset = set()) -> pd.DataFrame:
+def format_df_pp(df: pd.DataFrame, pp_root: str, subset: int = 0, wordset = set(), update_wordset:bool = False) -> pd.DataFrame:
     df = df[["path", "sentence", "speaker_id"]]
     if subset:
         df = df[:subset]
@@ -57,7 +59,8 @@ def format_df_pp(df: pd.DataFrame, pp_root: str, subset: int = 0, wordset = set(
         f_id = '_'.join(path.split('_')[1:]).replace('/','_')[:-4]
         wav = "{pp_root}/{path}".format(pp_root=pp_root, path=path)
         df_kaldi.loc[i] = [f_id, f_id, sent, wav]
-        wordset.update(sent.split())
+        if update_wordset:
+            wordset.update(sent.split())
 
     return df_kaldi
 
@@ -190,9 +193,9 @@ def main(args: Namespace) -> None:
         cv_test = pd.read_csv(args.cv_path+"/test.tsv", delimiter="\t")
 
         print("Formatting cv_train")
-        cv_train_kaldi = format_df_cv(cv_train, args.cv_path, subset=args.subset, wordset=all_words)
+        cv_train_kaldi = format_df_cv(cv_train, args.cv_path, subset=args.subset, wordset=all_words, update_wordset=args.check_vocab)
         print("Formatting cv_dev")
-        cv_dev_kaldi = format_df_cv(cv_dev, args.cv_path, subset=args.subset, wordset=all_words)
+        cv_dev_kaldi = format_df_cv(cv_dev, args.cv_path, subset=args.subset, wordset=all_words, update_wordset=args.check_vocab)
         print("Formatting cv_test")
         cv_test_kaldi = format_df_cv(cv_test, args.cv_path, subset=args.subset)
 
@@ -210,9 +213,9 @@ def main(args: Namespace) -> None:
         pp_test = pd.read_csv(args.pp_path+"/clean_test.tsv", delimiter="\t")
 
         print("Formatting pp_train")
-        pp_train_kaldi = format_df_pp(pp_train, args.pp_path, subset=args.subset, wordset=all_words)
+        pp_train_kaldi = format_df_pp(pp_train, args.pp_path, subset=args.subset, wordset=all_words, update_wordset=args.analyze_vocab)
         print("Formatting pp_dev")
-        pp_dev_kaldi = format_df_pp(pp_dev, args.pp_path, subset=args.subset, wordset=all_words)
+        pp_dev_kaldi = format_df_pp(pp_dev, args.pp_path, subset=args.subset, wordset=all_words, update_wordset=args.analyze_vocab)
         print("Formatting pp_test")
         pp_test_kaldi = format_df_pp(pp_test, args.pp_path, subset=args.subset)
 
@@ -232,7 +235,7 @@ def main(args: Namespace) -> None:
         df_to_data(merged_train_kaldi, args.data_path, "train")
         df_to_data(merged_dev_kaldi, args.data_path, "dev")
 
-    if args.lexicon_path and args.phonemes_path:
+    if args.check_vocab and args.lexicon_path and args.phonemes_path:
         unknown = all_words.difference(lexicon_words)
         unknown_words_path = os.path.join(args.data_path, "unknown_words.txt")
         
