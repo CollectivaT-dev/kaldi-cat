@@ -30,17 +30,25 @@ def format_df_cv(df: pd.DataFrame, commonvoice_root: str, sr: int = 16000, subse
     if subset:
         df = df[:subset]
 
-    kaldi_columns = ['f_id', 's_id', 'sent', 'wav']
-    df_kaldi = pd.DataFrame(columns=kaldi_columns)
+    #kaldi_columns = ['f_id', 's_id', 'sent', 'wav']
+    #df_kaldi = pd.DataFrame(columns=kaldi_columns)
+    d_list = []
 
     for i, (path, sent, s_id) in tqdm(df.iterrows(), total=df.shape[0]):
         clean_sent = clean_line(sent)
         #f_id = s_id + '_' + path.replace(".wav", "").replace(".mp3", "")  #Skips spk label 
         f_id = path.replace(".wav", "").replace(".mp3", "")
         wav = "sox {commonvoice_root}/clips/{path} -t wav -r {sr} -c 1 -b 16 - |".format(commonvoice_root=commonvoice_root, path=path, sr=sr)
-        df_kaldi.loc[i] = [f_id, f_id, clean_sent, wav]
+        
+        d = {'f_id':f_id, 's_id': s_id, 'sent': clean_sent, 'wav': wav} 
+        d_list.append(d)
+        
+        #df_kaldi.loc[i] = [f_id, f_id, clean_sent, wav]
+        
         if update_wordset:
             wordset.update(clean_sent.split())
+
+    df_kaldi = pd.DataFrame.from_dict(d_list)
 
     return df_kaldi
 
@@ -50,17 +58,25 @@ def format_df_pp(df: pd.DataFrame, pp_root: str, subset: int = 0, wordset = set(
     if subset:
         df = df[:subset]
 
-    kaldi_columns = ['f_id', 's_id', 'sent', 'wav']
-    df_kaldi = pd.DataFrame(columns=kaldi_columns)
+    # kaldi_columns = ['f_id', 's_id', 'sent', 'wav']
+    # df_kaldi = pd.DataFrame(columns=kaldi_columns)
 
+    d_list = []
     for i, (path, sent, s_id) in tqdm(df.iterrows(), total=df.shape[0]):
         #s_id_formatted = "s" + "%03d"%s_id #Skips spk label
         #f_id = s_id_formatted + '_' + '_'.join(path.split('_')[1:]).replace('/','_')[:-4] #Skips spk label
         f_id = '_'.join(path.split('_')[1:]).replace('/','_')[:-4]
         wav = "{pp_root}/{path}".format(pp_root=pp_root, path=path)
-        df_kaldi.loc[i] = [f_id, f_id, sent, wav]
+        
+        d = {'f_id':f_id, 's_id': s_id, 'sent': sent, 'wav': wav} 
+        d_list.append(d)
+
+        #df_kaldi.loc[i] = [f_id, f_id, sent, wav]
+
         if update_wordset:
             wordset.update(sent.split())
+
+    df_kaldi = pd.DataFrame.from_dict(d_list)
 
     return df_kaldi
 
@@ -213,9 +229,9 @@ def main(args: Namespace) -> None:
         pp_test = pd.read_csv(args.pp_path+"/clean_test.tsv", delimiter="\t")
 
         print("Formatting pp_train")
-        pp_train_kaldi = format_df_pp(pp_train, args.pp_path, subset=args.subset, wordset=all_words, update_wordset=args.analyze_vocab)
+        pp_train_kaldi = format_df_pp(pp_train, args.pp_path, subset=args.subset, wordset=all_words, update_wordset=args.check_vocab)
         print("Formatting pp_dev")
-        pp_dev_kaldi = format_df_pp(pp_dev, args.pp_path, subset=args.subset, wordset=all_words, update_wordset=args.analyze_vocab)
+        pp_dev_kaldi = format_df_pp(pp_dev, args.pp_path, subset=args.subset, wordset=all_words, update_wordset=args.check_vocab)
         print("Formatting pp_test")
         pp_test_kaldi = format_df_pp(pp_test, args.pp_path, subset=args.subset)
 
