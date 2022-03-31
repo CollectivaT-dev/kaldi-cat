@@ -44,7 +44,6 @@ if [ $stage -le 1 ]; then
   echo ">> 1: prepare datasets"
   echo "python local/prepare_data.py --data-path $data_path --cv-path $cv_path --pp-path $pp_base_path --phonemes-path $phonemes --lexicon-path $lexicon --lexicon-path $lexicon2 --subset $subset"
   python local/prepare_data.py --data-path $data_path --cv-path $cv_path --pp-path $pp_base_path --phonemes-path $phonemes --lexicon-path $lexicon --lexicon-path $lexicon2 --subset $subset || { echo "Fail running local/prepare_data.py"; exit 1; }
-
   #create subsets for viterbi training
   utils/subset_data_dir.sh --speakers data/train 10000 data/train_10k
   utils/subset_data_dir.sh --speakers data/train 50000 data/train_50k
@@ -57,7 +56,7 @@ if [ $stage -le 2 ]; then
     utils/validate_data_dir.sh --no-feats data/$part || { echo "Fail validating $part"; exit 1; }
   done
 
-echo ">> 2b: prepare LM and format to G.fst"
+  echo ">> 2b: prepare LM and format to G.fst"
   utils/prepare_lang.sh data/local/lang '<UNK>' data/local data/lang
 
   local/prepare_lm.sh --order $lm_order --textcorpus $textcorpus || { echo "Fail preparing LM"; exit 1; }
@@ -172,7 +171,7 @@ wait
 # train a chain model
 if [ $stage -le 9 ]; then
   echo ">>9: train a chain model"
-  local/chain/run_tdnn.sh --stage 0
+  #local/chain/run_tdnn.sh --stage 0
 fi
 
 # wait for jobs to finish

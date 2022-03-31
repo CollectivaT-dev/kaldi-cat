@@ -11,7 +11,7 @@ echo "=== Building a language model ..."
 locdata=data/local
 loctmp=$locdata/tmp
 
-echo "--- Preparing a corpus from test and train transcripts ..."
+echo "--- Preparing a corpus from train transcripts ..."
 
 # Language model order
 order=3
@@ -23,18 +23,19 @@ textcorpus=''
 mkdir -p $loctmp
 # cat data/train/text data/dev/text > $loctmp/utt.txt
 # cut -f2- -d' ' < $loctmp/utt.txt | sed -e 's:[ ]\+: :g' > $loctmp/traindev.txt
-cut -f2- -d' ' < data/train/text | sed -e 's:[ ]\+: :g' > $loctmp/train.txt
+cut -f2- -d' ' < data/train/text | sed -e 's:[ ]\+: :g' > $loctmp/trainutt.txt
+cat $loctmp/trainutt.txt > $loctmp/corpus_unsorted.txt
 # rm $loctmp/utt.txt
 
 # If given, add extra cleaned text corpus to the mix
 if [ ! -z "$textcorpus" ]; then
 	echo Adding $textcorpus to text corpus
-	cat $textcorpus >> $loctmp/train.txt
+	cat $textcorpus >> $loctmp/corpus_unsorted.txt
 fi
 
 #Sort corpus
-sort -u $loctmp/train.txt > $loctmp/corpus.txt
-rm $loctmp/train.txt
+sort -u $loctmp/corpus_unsorted.txt > $loctmp/corpus.txt
+rm $loctmp/corpus_unsorted.txt
 
 echo "prepare_lm.sh: Text corpus stats ($loctmp/corpus.txt)"
 wc $loctmp/corpus.txt 

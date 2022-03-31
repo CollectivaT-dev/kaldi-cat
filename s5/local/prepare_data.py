@@ -30,20 +30,15 @@ def format_df_cv(df: pd.DataFrame, commonvoice_root: str, sr: int = 16000, subse
     if subset:
         df = df[:subset]
 
-    #kaldi_columns = ['f_id', 's_id', 'sent', 'wav']
-    #df_kaldi = pd.DataFrame(columns=kaldi_columns)
     d_list = []
 
     for i, (path, sent, s_id) in tqdm(df.iterrows(), total=df.shape[0]):
         clean_sent = clean_line(sent)
-        #f_id = s_id + '_' + path.replace(".wav", "").replace(".mp3", "")  #Skips spk label 
         f_id = path.replace(".wav", "").replace(".mp3", "")
         wav = "sox {commonvoice_root}/clips/{path} -t wav -r {sr} -c 1 -b 16 - |".format(commonvoice_root=commonvoice_root, path=path, sr=sr)
         
-        d = {'f_id':f_id, 's_id': s_id, 'sent': clean_sent, 'wav': wav} 
+        d = {'f_id':f_id, 's_id': f_id, 'sent': clean_sent, 'wav': wav} #Note: not taking s_id
         d_list.append(d)
-        
-        #df_kaldi.loc[i] = [f_id, f_id, clean_sent, wav]
         
         if update_wordset:
             wordset.update(clean_sent.split())
@@ -58,20 +53,13 @@ def format_df_pp(df: pd.DataFrame, pp_root: str, subset: int = 0, wordset = set(
     if subset:
         df = df[:subset]
 
-    # kaldi_columns = ['f_id', 's_id', 'sent', 'wav']
-    # df_kaldi = pd.DataFrame(columns=kaldi_columns)
-
     d_list = []
     for i, (path, sent, s_id) in tqdm(df.iterrows(), total=df.shape[0]):
-        #s_id_formatted = "s" + "%03d"%s_id #Skips spk label
-        #f_id = s_id_formatted + '_' + '_'.join(path.split('_')[1:]).replace('/','_')[:-4] #Skips spk label
         f_id = '_'.join(path.split('_')[1:]).replace('/','_')[:-4]
         wav = "{pp_root}/{path}".format(pp_root=pp_root, path=path)
         
-        d = {'f_id':f_id, 's_id': s_id, 'sent': sent, 'wav': wav} 
+        d = {'f_id':f_id, 's_id': f_id, 'sent': sent, 'wav': wav} #Note: not taking f_id
         d_list.append(d)
-
-        #df_kaldi.loc[i] = [f_id, f_id, sent, wav]
 
         if update_wordset:
             wordset.update(sent.split())
@@ -97,9 +85,10 @@ def df_to_data(df: pd.DataFrame, data_path: str, set_name: str, subset: int = 0)
 
     for i, (f_id, s_id, sent, wav) in df.sort_values("f_id").iterrows():
         wav_scp.write("{f_id} {wav}\n".format(f_id=f_id, wav=wav))
-        utt2spk.write("{f_id} {s_id}\n".format(f_id=f_id, s_id=s_id))  # we wont specify spk id here
+        utt2spk.write("{f_id} {s_id}\n".format(f_id=f_id, s_id=s_id))  
         spk2utt.write("{s_id} {f_id}\n".format(f_id=f_id, s_id=s_id))
         text.write("{f_id} {sent}\n".format(f_id=f_id, sent=sent))
+
     wav_scp.close()
     utt2spk.close()
     spk2utt.close()
@@ -191,7 +180,6 @@ def prepare_lexicon_naive(data_path: str) -> None:
     open("{data_path}/local/lang/optional_silence.txt".format(data_path=data_path), "w").writelines(optional_silence)
     open("{data_path}/local/lang/silence_phones.txt".format(data_path=data_path), "w").writelines(silence_phones)
     open("{data_path}/local/lang/extra_questions.txt".format(data_path=data_path), "w").writelines([])
-    
     
 def main(args: Namespace) -> None:
     all_words = set()
