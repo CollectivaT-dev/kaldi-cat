@@ -45,9 +45,9 @@ if [ $stage -le 1 ]; then
   echo "python local/prepare_data.py --data-path $data_path --cv-path $cv_path --pp-path $pp_base_path --phonemes-path $phonemes --lexicon-path $lexicon --lexicon-path $lexicon2 --subset $subset"
   python local/prepare_data.py --data-path $data_path --cv-path $cv_path --pp-path $pp_base_path --phonemes-path $phonemes --lexicon-path $lexicon --lexicon-path $lexicon2 --subset $subset || { echo "Fail running local/prepare_data.py"; exit 1; }
   #create subsets for viterbi training
-  utils/subset_data_dir.sh --speakers data/train 100 data/train_10k
-  utils/subset_data_dir.sh --speakers data/train 500 data/train_50k
-  utils/subset_data_dir.sh --speakers data/train 1500 data/train_150k
+  utils/subset_data_dir.sh --speakers data/train 10000 data/train_10k
+  utils/subset_data_dir.sh --speakers data/train 50000 data/train_50k
+  utils/subset_data_dir.sh --speakers data/train 150000 data/train_150k
 fi
 
 if [ $stage -le 2 ]; then
