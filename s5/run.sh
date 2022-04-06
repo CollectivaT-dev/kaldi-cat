@@ -45,15 +45,16 @@ if [ $stage -le 1 ]; then
   echo "python local/prepare_data.py --data-path $data_path --cv-path $cv_path --pp-path $pp_base_path --phonemes-path $phonemes --lexicon-path $lexicon --lexicon-path $lexicon2 --subset $subset"
   python local/prepare_data.py --data-path $data_path --cv-path $cv_path --pp-path $pp_base_path --phonemes-path $phonemes --lexicon-path $lexicon --lexicon-path $lexicon2 --subset $subset || { echo "Fail running local/prepare_data.py"; exit 1; }
   #create subsets for viterbi training
-  utils/subset_data_dir.sh --speakers data/train 10000 data/train_10k
-  utils/subset_data_dir.sh --speakers data/train 50000 data/train_50k
-  utils/subset_data_dir.sh --speakers data/train 150000 data/train_150k
+  utils/subset_data_dir.sh --speakers data/train 100 data/train_10k
+  utils/subset_data_dir.sh --speakers data/train 500 data/train_50k
+  utils/subset_data_dir.sh --speakers data/train 1500 data/train_150k
 fi
 
 if [ $stage -le 2 ]; then
   echo ">> 2a: validate prepared data"
   for part in train train_10k train_50k train_150k dev cv_test pp_test; do
-    utils/validate_data_dir.sh --no-feats data/$part || { echo "Fail validating $part"; exit 1; }
+    #utils/validate_data_dir.sh --no-feats data/$part || { echo "Fail validating $part"; exit 1; }
+    utils/validate_data_dir.sh --no-feats data/$part || { echo "Fixing $part"; utils/fix_data_dir.sh data/$part; }
   done
 
   echo ">> 2b: prepare LM and format to G.fst"
@@ -66,6 +67,10 @@ fi
 if [ $stage -le 3 ]; then
   echo ">> 3: create MFCC feats (make_mfcc_pitch)"
   for part in train train_10k train_50k train_150k dev cv_test pp_test; do
+    utils/validate_data_dir.sh --no-feats data/$part || { echo "Fixing $part"; utils/fix_data_dir.sh data/$part; }
+  done
+
+  for part in train train_10k train_50k train_150k dev cv_test pp_test; do
     steps/make_mfcc_pitch.sh --cmd "$train_cmd" --nj $njobs data/$part exp/make_mfcc/$part $mfccdir || { echo "Error make MFCC features"; exit 1; }
     steps/compute_cmvn_stats.sh data/$part exp/make_mfcc/$part $mfccdir || { echo "Error computing CMVN"; exit 1; }
   done
@@ -74,6 +79,10 @@ fi
 # mono: train monophone with 10k subset
 if [ $stage -le 4 ]; then
   echo ">> 4: train monophone"
+  for part in train train_10k train_50k train_150k dev cv_test pp_test; do
+    utils/validate_data_dir.sh --no-feats data/$part || { echo "Fixing $part"; utils/fix_data_dir.sh data/$part; }
+  done
+
   steps/train_mono.sh --boost-silence 1.25 --nj $njobs --cmd "$train_cmd" \
     data/train_10k data/lang exp/mono || { echo "Error training mono"; exit 1; };
   (
@@ -90,6 +99,10 @@ fi
 # tri1: train delta + delta-delta triphone with 50k subset
 if [ $stage -le 5 ]; then
   echo ">>5: train delta + delta-delta triphone"
+  for part in train train_10k train_50k train_150k dev cv_test pp_test; do
+    utils/validate_data_dir.sh --no-feats data/$part || { echo "Fixing $part"; utils/fix_data_dir.sh data/$part; }
+  done
+
   steps/train_deltas.sh --boost-silence 1.25 --cmd "$train_cmd" \
     2500 15000 data/train_50k data/lang exp/mono_ali exp/tri1 || { echo "Error training delta tri1"; exit 1; }
 
@@ -109,6 +122,10 @@ fi
 # tri2: train LDA+MLLT with 150k subset
 if [ $stage -le 6 ]; then
   echo ">>6a: train LDA+MLLT"
+  for part in train train_10k train_50k train_150k dev cv_test pp_test; do
+    utils/validate_data_dir.sh --no-feats data/$part || { utils/fix_data_dir.sh data/$part; }
+  done
+
   steps/train_lda_mllt.sh --boost-silence 1.25 --cmd "$train_cmd" \
     --splice-opts "--left-context=3 --right-context=3" 3500 20000 \
       data/train_150k data/lang exp/tri1_ali exp/tri2b || { echo "Error training tri2b (LDA+MLLT)"; exit 1; }
@@ -130,6 +147,10 @@ fi
 # tri3: train LDA+MLLT+SAT with all set
 if [ $stage -le 7 ]; then
   echo ">>7a: train LDA+MLLT"
+  for part in train train_10k train_50k train_150k dev cv_test pp_test; do
+    utils/validate_data_dir.sh --no-feats data/$part || { echo "Fixing $part"; utils/fix_data_dir.sh data/$part; }
+  done
+
   steps/train_sat.sh --boost-silence 1.25 --cmd "$train_cmd" 4000 20000 \
     data/train data/lang exp/tri2b_ali exp/tri3b || { echo "Error training tri3b (LDA+MLLT+SAT)"; exit 1; }
 
@@ -146,6 +167,10 @@ fi
 # tri4
 if [ $stage -le 8 ]; then
   echo ">>8a: align utts in the full training set using the tri3b model"
+  for part in train train_10k train_50k train_150k dev cv_test pp_test; do
+    utils/validate_data_dir.sh --no-feats data/$part || { echo "Fixing $part"; utils/fix_data_dir.sh data/$part; }
+  done
+
   steps/align_fmllr.sh --boost-silence 1.25 --nj $njobs --cmd "$train_cmd" \
     data/train data/lang \
     exp/tri3b exp/tri3b_ali || { echo "Error aligning FMLLR for tri4b"; exit 1; }
@@ -171,6 +196,10 @@ wait
 # train a chain model
 if [ $stage -le 9 ]; then
   echo ">>9: train a chain model"
+  for part in train train_10k train_50k train_150k dev cv_test pp_test; do
+    utils/validate_data_dir.sh --no-feats data/$part || { echo "Fixing $part"; utils/fix_data_dir.sh data/$part; }
+  done
+  echo "WARNING: skipping chain model training for now"
   #local/chain/run_tdnn.sh --stage 0
 fi
 
